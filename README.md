@@ -1,1 +1,1 @@
-We Scrape
+WeScrape

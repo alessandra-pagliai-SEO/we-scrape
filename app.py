@@ -6,6 +6,23 @@ from docx import Document
 from io import BytesIO
 
 # ======================
+# DOMINI DA ESCLUDERE DALLO SCRAPING
+# ======================
+
+EXCLUDED_DOMAINS = [
+    "youtube.com",
+    "youtu.be",
+    "facebook.com",
+    "instagram.com",
+    "tiktok.com",
+    "twitter.com",
+    "x.com",
+    "linkedin.com",
+    "pinterest.com",
+    "reddit.com"
+]
+
+# ======================
 # SIDEBAR API CONFIG
 # ======================
 
@@ -25,7 +42,7 @@ OPENAI_KEY = st.sidebar.text_input(
 # UI PRINCIPALE
 # ======================
 
-st.title("WeScrape")
+st.title("SEO Article Generator")
 
 st.write(
     "Genera articoli SEO analizzando automaticamente i competitor nella SERP e le People Also Ask."
@@ -77,12 +94,23 @@ def get_competitors(keyword: str, num_results: int, serp_key: str, hl: str, gl: 
 
     competitors = []
 
-    for item in organic[:num_results]:
+    for item in organic:
+
+        link = item.get("link", "")
+
+        if not link:
+            continue
+
+        if any(domain in link for domain in EXCLUDED_DOMAINS):
+            continue
 
         competitors.append({
             "title": item.get("title"),
-            "link": item.get("link")
+            "link": link
         })
+
+        if len(competitors) >= num_results:
+            break
 
     return competitors
 
@@ -252,9 +280,9 @@ STRUTTURA DELL'ARTICOLO
 
 IMPORTANTE:
 
-Sotto ogni heading inserisci **una risposta diretta di circa 50 parole** che riassuma subito il concetto.
+Sotto ogni heading inserisci una risposta diretta di circa 50 parole che riassuma subito il concetto.
 
-Queste parti **devono essere neutre e informative**, senza tone of voice scherzoso.
+Queste parti devono essere neutre e informative, senza tone of voice scherzoso.
 
 ========================
 HEADINGS
@@ -322,7 +350,7 @@ https://stories.weroad.it/lista-cose-portare-viaggio/
 LINK INTERNI / DESTINAZIONI
 ========================
 
-Verso la fine dell'articolo inserisci **1 o 2 link di viaggio o destinazioni**.
+Verso la fine dell'articolo inserisci 1 o 2 link di viaggio o destinazioni.
 
 I link devono provenire dal sito WeRoad usando il dominio corretto in base alla lingua dell'articolo.
 

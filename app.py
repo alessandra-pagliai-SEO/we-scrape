@@ -25,7 +25,7 @@ OPENAI_KEY = st.sidebar.text_input(
 # UI PRINCIPALE
 # ======================
 
-st.title("SEO Article Generator")
+st.title("WeScrape")
 
 st.write(
     "Genera articoli SEO analizzando automaticamente i competitor nella SERP e le People Also Ask."

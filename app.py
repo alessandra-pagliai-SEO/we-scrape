@@ -25,10 +25,10 @@ OPENAI_KEY = st.sidebar.text_input(
 # UI PRINCIPALE
 # ======================
 
-st.title("SEO Article Generator")
+st.title("WeScrape")
 
 st.write(
-    "Genera articoli SEO analizzando automaticamente i competitor nella SERP e le People Also Ask."
+    "Genera articoli SEO nel tone of voice di WeRoad analizzando automaticamente i competitor nella SERP e le People Also Ask."
 )
 
 keyword = st.text_input("Main keyword")
@@ -36,7 +36,7 @@ keyword = st.text_input("Main keyword")
 num_results = st.number_input(
     "Numero contenuti su cui fare scraping",
     min_value=1,
-    max_value=10,
+    max_value=20,
     value=3
 )
 
@@ -189,7 +189,7 @@ CONTENUTO:
         paa_block = "\n".join([f"- {q}" for q in paa])
 
     prompt = f"""
-Sei un content writer SEO esperto.
+Sei un SEO Copywriter professionista nel 2026.
 
 Scrivi un contenuto SEO completo per la keyword:
 
@@ -197,24 +197,68 @@ Scrivi un contenuto SEO completo per la keyword:
 
 Language code della ricerca: {language}
 
-Il risultato deve contenere:
+La lingua dell'articolo deve essere la stessa dell'input utente e deve rispettare usi e costumi della country di riferimento.
 
-TITLE TAG (max 60 caratteri)
+LINEE GUIDA SEO:
 
-META DESCRIPTION (max 155 caratteri)
+Oltre al titolo dell'articolo (H1) devi generare anche:
 
-ARTICOLO HTML (800-1200 parole)
+META TITLE:
+- massimo 50 caratteri
+- basato sulla keyword principale
+- se possibile includi keyword correlate restando entro i 50 caratteri
 
-L'articolo deve essere scritto in HTML pronto per un editor CMS.
+META DESCRIPTION:
+- massimo 155 caratteri
+- basata sulla keyword principale
+- progettata per aumentare il CTR
 
-Regole HTML:
+ARTICOLO:
+- circa 1500 parole
+- formato HTML pronto per CMS
 
-- usa <h2> e <h3> per i sottotitoli
+REGOLE HTML:
+
+- usa <h1>, <h2>, <h3>
 - usa <p> per i paragrafi
-- usa <ul> <ol> per liste
-- usa <strong> per enfasi
-- usa <table> se utile per confronti
+- usa <ul> e <ol> per le liste
+- usa <strong> per evidenziare entità importanti
+- usa <table> per confronti
 - NON includere <html>, <body>, <head>
+
+REQUISITI EDITORIALI:
+
+Tone of voice generale:
+simpatico e scherzoso nello stile dei seguenti esempi editoriali:
+
+https://stories.weroad.it/citta-italiane-visitare-2-giorni/
+https://stories.weroad.it/viaggi-digital-detox/
+https://stories.weroad.it/lista-cose-portare-viaggio/
+
+MA:
+
+Sotto ogni heading devi iniziare con:
+
+- una risposta diretta di circa 50 parole
+- senza tone of voice simpatico
+- tono informativo e chiaro
+
+Solo dopo queste 50 parole puoi usare uno stile più leggero. Sviluppa i paragrafi successivi in modo ricco e discorsivo, utilizzando elenchi puntati e tabelle solo quando realmente necessario.
+
+STRUTTURA DEI TITOLI:
+
+- usa gli heading per formulare quesiti o topic espliciti basati su keyword con volume di ricerca
+- non usare maiuscole inutili
+- rispetta le regole grammaticali della lingua di output
+
+CONTENUTO:
+
+- evita testo di riempimento
+- ogni paragrafo deve aggiungere valore informativo
+- usa liste puntate o numerate quando utile
+- se fai confronti usa tabelle HTML
+- le tabelle devono essere leggibili su viewport mobile
+- evidenzia con <strong> le entità chiave
 
 IMPORTANTE:
 

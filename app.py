@@ -5,7 +5,6 @@ from openai import OpenAI
 from docx import Document
 from io import BytesIO
 
-
 # ======================
 # SESSION STATE
 # ======================
@@ -24,7 +23,6 @@ if "title_tag" not in st.session_state:
 
 if "meta_description" not in st.session_state:
     st.session_state.meta_description = ""
-
 
 # ======================
 # FUNZIONI
@@ -109,9 +107,7 @@ def fetch_page(url):
         resp = requests.get(
             url,
             timeout=15,
-            headers={
-                "User-Agent": "Mozilla/5.0"
-            }
+            headers={"User-Agent": "Mozilla/5.0"}
         )
 
         html = resp.text
@@ -126,7 +122,6 @@ def fetch_page(url):
         return html, text[:18000]
 
     except Exception:
-
         return "", ""
 
 
@@ -168,7 +163,6 @@ CONTENUTO:
 {comp['text']}
 
 -------------------------
-
 """
 
     paa_block = "\n".join([f"- {q}" for q in paa])
@@ -196,9 +190,7 @@ ARTICLE HTML:
         messages=[{"role": "user", "content": prompt}]
     )
 
-    content = response.choices[0].message.content
-
-    return content
+    return response.choices[0].message.content
 
 
 def create_word_file(title_tag, meta_description, article):
@@ -224,15 +216,31 @@ def create_word_file(title_tag, meta_description, article):
 
 
 # ======================
-# SIDEBAR
+# SIDEBAR API
 # ======================
 
 st.sidebar.title("API Configuration")
 
-SERPER_KEY = st.sidebar.text_input("Serper API Key", type="password")
-SERPAPI_KEY = st.sidebar.text_input("SerpAPI Key", type="password")
-OPENAI_KEY = st.sidebar.text_input("OpenAI Key", type="password")
+st.sidebar.header("SERP scraping")
+SERPER_KEY = st.sidebar.text_input(
+    "Serper.dev API Key",
+    type="password",
+    help="Usata per recuperare i risultati organici della SERP"
+)
 
+st.sidebar.header("People Also Ask")
+SERPAPI_KEY = st.sidebar.text_input(
+    "SerpAPI Key",
+    type="password",
+    help="Usata per recuperare le PAA"
+)
+
+st.sidebar.header("AI generation")
+OPENAI_KEY = st.sidebar.text_input(
+    "OpenAI API Key",
+    type="password",
+    help="Usata per generare l'articolo SEO"
+)
 
 # ======================
 # UI
@@ -259,13 +267,13 @@ if generate:
 
     if not SERPER_KEY or not SERPAPI_KEY or not OPENAI_KEY:
 
-        st.error("Inserisci tutte le API key")
+        st.error("Inserisci tutte le API key nella sidebar")
         st.stop()
 
     st.subheader("SERP Insights")
 
-    paa_placeholder = st.empty()
-    url_placeholder = st.empty()
+    paa_box = st.container()
+    url_box = st.container()
 
     progress = st.progress(0)
 
@@ -286,11 +294,10 @@ if generate:
             country
         )
 
-        st.session_state.paa_questions = paa
-
-        paa_placeholder.write("### People Also Ask")
-        for q in paa:
-            st.write("-", q)
+        with paa_box:
+            st.write("### People Also Ask")
+            for q in paa:
+                st.write("-", q)
 
     scraped = []
 
@@ -300,9 +307,10 @@ if generate:
 
         scraped.append(comp["link"])
 
-        url_placeholder.write("### URL scrapate")
-        for u in scraped:
-            st.write("-", u)
+        with url_box:
+            st.write("### URL scrapate")
+            for u in scraped:
+                st.write("-", u)
 
         html, text = fetch_page(comp["link"])
 

@@ -197,7 +197,7 @@ Scrivi un contenuto SEO completo per la keyword:
 
 Language code della ricerca: {language}
 
-La lingua dell'articolo deve essere la stessa dell'input utente e deve rispettare usi e costumi della country di riferimento.
+La lingua dell'articolo deve essere la stessa dell'input utente e deve rispettare usi e costumi della country di riferimento. Utilizza le regole grammaticali e le convenzioni di maiuscole e minuscole della lingua di riferimento.
 
 LINEE GUIDA SEO:
 

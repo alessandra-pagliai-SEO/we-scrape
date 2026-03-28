@@ -259,8 +259,10 @@ Le PAA NON devono comparire come Q&A.
 - Le tabelle devono essere ottimizzate per viewport mobile (leggibili da smartphone).
 - Evidenzia con **strong** le entità chiave (destinazioni, punti di interesse, meteo, temperature, ecc.).
 - Evita testo di riempimento: ogni paragrafo deve aggiungere valore informativo.
-- Evita paragrafi schematici: il testo deve essere discorsivo e ricco.
+- Evita paragrafi schematici: il testo deve essere discorsivo e ricco. No paragrafi composti solo da punti elenco.
 - Lunghezza complessiva circa 1500 parole.
+
+
 
 
 PAA INSIGHTS:
@@ -356,7 +358,7 @@ st.markdown(
 st.title("WeScrape")
 
 keyword = st.text_input("Keyword")
-num_results = st.slider("Numero competitor organici da scrapare", 1, 20, 5)
+num_results = st.slider("Numero competitor organici da analizzare", 1, 20, 5)
 country = st.text_input("Country code", "it")
 language = st.text_input("Language code", "it")
 

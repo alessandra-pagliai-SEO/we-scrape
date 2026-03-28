@@ -230,7 +230,7 @@ CONTENUTO:
         paa_block = "\n".join([f"- {q}" for q in paa])
 
     prompt = f"""
-Sei un content writer SEO esperto. Siamo nel 2026.
+Sei un content writer SEO esperto.
 
 Scrivi un contenuto SEO completo per la keyword:
 
@@ -240,25 +240,13 @@ Language code della ricerca: {language}
 
 Il risultato deve contenere:
 
-TITLE TAG (max 60 caratteri), contenente la keyword princiapale del contenuto
+TITLE TAG (max 60 caratteri)
 
-META DESCRIPTION (max 155 caratteri), con keyword principale e soft CTA
+META DESCRIPTION (max 155 caratteri)
 
-ARTICOLO HTML (800-1500 parole)
+ARTICOLO HTML (800-1200 parole)
 
--L'articolo deve essere scritto in HTML pronto per un editor CMS. Ricco e discorsivo, non deve contenere paragrafi schematici.
--Inizia il testo (sotto ogni heading) con una risposta diretta di circa 50 parole. In queste porzioni di testo non usare il "tone of voice" simpatico e scherzoso.
--Se fai dei confronti, e.g. piazze, monumenti, punti di interesse usa una tabella. Le misure delle tabelline devono essere ottimali per un ViewPort mobile e quindi essere leggibili per esempio da uno smartphone
--Evidenzia con grassetti le entità chiave, e.g. nomi delle destinazioni, punti di interesse, meteo e temperature, etc.
--Evita testo di riempimento. Se un passaggio non aggiunge valore informativo non lo inserire.
--Utilizza grammatica e sintassi della localizzazione Google di riferimento.
--Riferisciti a usi e costumi del paese del target per cui stai scrivendo.
-
-TONE OF VOICE:
-Simpatico e scherzoso, puoi usare come riferimenti i seguenti URL:
-* https://stories.weroad.it/citta-italiane-visitare-2-giorni/
-* https://stories.weroad.it/viaggi-digital-detox/
-* https://stories.weroad.it/lista-cose-portare-viaggio/
+L'articolo deve essere scritto in HTML pronto per un editor CMS.
 
 Regole HTML:
 
@@ -268,7 +256,6 @@ Regole HTML:
 - usa <strong> per enfasi
 - usa <table> se utile per confronti
 - NON includere <html>, <body>, <head>
-
 
 IMPORTANTE:
 

@@ -6,6 +6,16 @@ from docx import Document
 from io import BytesIO
 
 # ======================
+# SESSION STATE
+# ======================
+
+if "paa_questions" not in st.session_state:
+    st.session_state.paa_questions = []
+
+if "competitors_raw" not in st.session_state:
+    st.session_state.competitors_raw = []
+
+# ======================
 # SIDEBAR API CONFIG
 # ======================
 
@@ -26,7 +36,7 @@ OPENAI_KEY = st.sidebar.text_input(
 # ======================
 
 st.image(
-    "https://s3-eu-west-1.amazonaws.com/tpd/logos/62331cd876763552a17cd98b/0x0.png",
+    "https://YOUR_LOGO_URL/logo.png",
     width=220
 )
 
@@ -34,10 +44,10 @@ st.image(
 # UI PRINCIPALE
 # ======================
 
-st.title("WeScrape")
+st.title("SEO Article Generator")
 
 st.write(
-    "Tool che genera articoli SEO nel tone of voice di WeRoad analizzando automaticamente i competitor nella SERP e le People Also Ask."
+    "Genera articoli SEO analizzando automaticamente i competitor nella SERP e le People Also Ask."
 )
 
 keyword = st.text_input("Main keyword")
@@ -46,7 +56,7 @@ num_results = st.number_input(
     "Numero contenuti su cui fare scraping",
     min_value=1,
     max_value=20,
-    value=10
+    value=5
 )
 
 country = st.text_input(
@@ -62,11 +72,25 @@ language = st.text_input(
 generate = st.button("Genera contenuto")
 
 # ======================
-# CONTAINER SERP OUTPUT
+# SERP DATA SEMPRE VISIBILI
 # ======================
 
-paa_container = st.container()
-competitor_container = st.container()
+if st.session_state.paa_questions:
+
+    st.write("### People Also Ask estratte dalla SERP")
+
+    for q in st.session_state.paa_questions:
+        st.write("-", q)
+
+
+if st.session_state.competitors_raw:
+
+    st.write("### Analisi contenuti competitor")
+
+    st.write("#### Pagine utilizzate per l'analisi")
+
+    for comp in st.session_state.competitors_raw:
+        st.write("-", comp["link"])
 
 # ======================
 # FUNZIONI
@@ -237,15 +261,13 @@ CONTENUTO:
         paa_block = "\n".join([f"- {q}" for q in paa])
 
     prompt = f"""
-Sei un content writer SEO esperto. Siamo nel 2026.
+Sei un content writer SEO esperto.
 
 Scrivi un contenuto SEO completo per la keyword:
 
 {keyword}
 
-Language code della ricerca: {language}
-
-Il risultato deve contenere:
+Lingua: {language}
 
 TITLE TAG (max 60 caratteri)
 
@@ -262,7 +284,7 @@ Regole HTML:
 - usa <table> se utile
 - NON includere <html>, <body>, <head>
 
-Le domande People Also Ask NON devono essere riportate come Q&A.
+Le PAA devono servire come insight ma non essere riportate come Q&A.
 
 PAA INSIGHTS:
 {paa_block}
@@ -270,7 +292,7 @@ PAA INSIGHTS:
 COMPETITOR DATA:
 {merged}
 
-Restituisci il risultato nel formato:
+Restituisci:
 
 TITLE TAG:
 ...
@@ -348,7 +370,7 @@ if generate:
 
     with st.spinner("Recupero competitor dalla SERP..."):
 
-        competitors_raw = get_competitors(
+        st.session_state.competitors_raw = get_competitors(
             keyword,
             num_results,
             SERPER_KEY,
@@ -356,54 +378,28 @@ if generate:
             country
         )
 
-    if len(competitors_raw) == 0:
+    if len(st.session_state.competitors_raw) == 0:
 
         st.error("Nessun competitor trovato")
         st.stop()
 
-    with st.spinner("Recupero insight dalla SERP (People Also Ask)..."):
+    with st.spinner("Recupero People Also Ask..."):
 
-        paa_questions = get_people_also_ask(
+        st.session_state.paa_questions = get_people_also_ask(
             keyword,
             SERPER_KEY,
             language,
             country
         )
 
-    # ======================
-    # DISPLAY SERP DATA
-    # ======================
-
-    if paa_questions:
-
-        with paa_container:
-
-            st.write("### People Also Ask estratte dalla SERP")
-
-            for q in paa_questions:
-                st.write("-", q)
-
-    with competitor_container:
-
-        st.write("### Analisi contenuti competitor")
-
-        st.write("#### Pagine utilizzate per l'analisi")
-
-        for comp in competitors_raw:
-            st.write("-", comp["link"])
-
-    # ======================
-    # SCRAPING
-    # ======================
-
     competitors = []
 
     progress = st.progress(0)
     status = st.empty()
 
-    total = len(competitors_raw)
+    total = len(st.session_state.competitors_raw)
 
-    for i, comp in enumerate(competitors_raw):
+    for i, comp in enumerate(st.session_state.competitors_raw):
 
         status.write(f"Analizzo: {comp['link']}")
 
@@ -423,23 +419,15 @@ if generate:
 
     status.empty()
 
-    # ======================
-    # GENERAZIONE AI
-    # ======================
-
     with st.spinner("Generazione contenuto con AI..."):
 
         title_tag, meta_description, article = generate_article(
             keyword,
             competitors,
-            paa_questions,
+            st.session_state.paa_questions,
             OPENAI_KEY,
             language
         )
-
-    # ======================
-    # OUTPUT
-    # ======================
 
     st.subheader("SEO Metadata")
 

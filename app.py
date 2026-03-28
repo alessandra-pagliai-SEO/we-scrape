@@ -5,7 +5,6 @@ from openai import OpenAI
 from docx import Document
 from io import BytesIO
 
-
 # ======================
 # SESSION STATE
 # ======================
@@ -109,7 +108,7 @@ def get_competitors(keyword: str, num_results: int, serper_key: str, hl: str, gl
 
 
 # ======================
-# PAA DA SERPAPI
+# PEOPLE ALSO ASK (SERPAPI)
 # ======================
 
 def get_people_also_ask(keyword: str, serpapi_key: str, hl: str, gl: str):
@@ -328,14 +327,6 @@ def create_word_file(title_tag, meta_description, article):
     return buffer
 
 
-def reset_generation_outputs():
-
-    st.session_state.competitors_enriched = []
-    st.session_state.title_tag = ""
-    st.session_state.meta_description = ""
-    st.session_state.article = ""
-
-
 # ======================
 # SIDEBAR API
 # ======================
@@ -359,20 +350,14 @@ OPENAI_KEY = st.sidebar.text_input(
 
 
 # ======================
-# LOGO
-# ======================
-
-st.image(
-    "https://YOUR_LOGO_URL/logo.png",
-    width=220
-)
-
-
-# ======================
 # UI
 # ======================
 
 st.title("SEO Article Generator")
+
+st.write(
+    "Genera articoli SEO analizzando automaticamente i competitor nella SERP e le People Also Ask."
+)
 
 keyword = st.text_input("Main keyword", value=st.session_state.last_keyword)
 
@@ -384,18 +369,14 @@ num_results = st.number_input(
 )
 
 country = st.text_input("Country code (gl)", value="it")
-
 language = st.text_input("Language code (hl)", value="it")
 
+generate = st.button("Genera contenuto", use_container_width=True)
 
-col1, col2 = st.columns(2)
 
-with col1:
-    generate = st.button("Genera contenuto", use_container_width=True)
-
-with col2:
-    clear = st.button("Reset", use_container_width=True)
-
+# ======================
+# GENERAZIONE
+# ======================
 
 if generate:
 
@@ -420,27 +401,11 @@ if generate:
             gl=country
         )
 
-    st.session_state.competitors_raw = competitors_raw
-    st.session_state.paa_questions = paa_questions
-
-    st.session_state.start_generation = True
-    st.rerun()
-
-
-# ======================
-# GENERAZIONE
-# ======================
-
-if st.session_state.start_generation:
-
-    st.session_state.start_generation = False
-
     competitors = []
 
-    for comp in st.session_state.competitors_raw:
+    for comp in competitors_raw:
 
         html, text = fetch_page(comp["link"])
-
         html_title, h1, meta_desc = extract_metadata(html)
 
         competitors.append({
@@ -456,7 +421,7 @@ if st.session_state.start_generation:
         title_tag, meta_description, article = generate_article(
             keyword=keyword,
             competitors=competitors,
-            paa=st.session_state.paa_questions,
+            paa=paa_questions,
             openai_key=OPENAI_KEY,
             language=language
         )
@@ -464,8 +429,6 @@ if st.session_state.start_generation:
     st.session_state.title_tag = title_tag
     st.session_state.meta_description = meta_description
     st.session_state.article = article
-
-    st.rerun()
 
 
 # ======================

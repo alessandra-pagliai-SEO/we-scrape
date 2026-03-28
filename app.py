@@ -246,6 +246,23 @@ Regole HTML:
 
 Le PAA NON devono comparire come Q&A.
 
+# Requisiti editoriali
+
+- Inizia il testo sotto ogni heading con una risposta diretta di circa 50 parole.
+- In queste porzioni iniziali NON usare il tone of voice simpatico e scherzoso.
+- Usa gli heading (H1, H2, H3) per formulare quesiti espliciti basati su keyword con volume di ricerca.
+- Anche negli heading non usare il tone of voice simpatico e scherzoso.
+- Non mettere prime lettere maiuscole ovunque: usa la capitalizzazione corretta secondo la lingua.
+- Inserisci sempre la maiuscola a inizio frase.
+- Utilizza elenchi puntati o numerati quando utile.
+- Quando fai confronti tra luoghi, monumenti o punti di interesse usa una tabella.
+- Le tabelle devono essere ottimizzate per viewport mobile (leggibili da smartphone).
+- Evidenzia con **strong** le entità chiave (destinazioni, punti di interesse, meteo, temperature, ecc.).
+- Evita testo di riempimento: ogni paragrafo deve aggiungere valore informativo.
+- Evita paragrafi schematici: il testo deve essere discorsivo e ricco.
+- Lunghezza complessiva circa 1500 parole.
+
+
 PAA INSIGHTS:
 {paa_block}
 

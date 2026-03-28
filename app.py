@@ -4,6 +4,24 @@ from bs4 import BeautifulSoup
 from openai import OpenAI
 from docx import Document
 from io import BytesIO
+from urllib.parse import urlparse
+
+# ======================
+# DOMINI DA ESCLUDERE
+# ======================
+
+EXCLUDED_DOMAINS = [
+    "youtube.com",
+    "youtu.be",
+    "facebook.com",
+    "instagram.com",
+    "tiktok.com",
+    "twitter.com",
+    "x.com",
+    "linkedin.com",
+    "pinterest.com",
+    "reddit.com"
+]
 
 # ======================
 # SIDEBAR API CONFIG
@@ -36,7 +54,7 @@ keyword = st.text_input("Main keyword")
 num_results = st.number_input(
     "Numero contenuti su cui fare scraping",
     min_value=1,
-    max_value=20,
+    max_value=10,
     value=3
 )
 
@@ -50,10 +68,7 @@ language = st.text_input(
     value="it"
 )
 
-# NUOVI INPUT
-
 sitemap_site = st.text_input("Sitemap Sito Web")
-
 sitemap_blog = st.text_input("Sitemap Blog")
 
 generate = st.button("Genera contenuto")
@@ -71,7 +86,7 @@ def get_competitors(keyword: str, num_results: int, serp_key: str, hl: str, gl: 
         "q": keyword,
         "hl": hl,
         "gl": gl,
-        "num": num_results,
+        "num": num_results * 3,
         "api_key": serp_key
     }
 
@@ -83,12 +98,25 @@ def get_competitors(keyword: str, num_results: int, serp_key: str, hl: str, gl: 
 
     competitors = []
 
-    for item in organic[:num_results]:
+    for item in organic:
+
+        link = item.get("link")
+
+        if not link:
+            continue
+
+        domain = urlparse(link).netloc.lower()
+
+        if any(excluded in domain for excluded in EXCLUDED_DOMAINS):
+            continue
 
         competitors.append({
             "title": item.get("title"),
-            "link": item.get("link")
+            "link": link
         })
+
+        if len(competitors) >= num_results:
+            break
 
     return competitors
 
@@ -221,7 +249,7 @@ Scrivere un articolo SEO completo basato sulla keyword principale analizzando:
 - People Also Ask
 - intenzione di ricerca
 
-Il contenuto deve essere informativo, utile e senza filler.
+Il contenuto deve essere informativo e utile.
 
 ========================
 OUTPUT RICHIESTO
@@ -237,36 +265,55 @@ ARTICLE HTML:
 ...
 
 ========================
+STILE DI SCRITTURA
+========================
+
+Il testo deve sembrare scritto da un travel editor umano.
+
+Evita una struttura troppo schematica o ripetitiva.
+
+Alterna:
+- paragrafi narrativi
+- liste
+- micro approfondimenti
+
+Ogni sezione deve iniziare con una breve risposta introduttiva (40-60 parole) che introduca il tema.
+
+Successivamente sviluppa il contenuto in modo naturale e discorsivo.
+
+========================
 LINK INTERNI BLOG
 ========================
 
-All'interno del contenuto suggerisci l'inserimento di **massimo 5 link verso contenuti tematici affini**.
+All'interno del contenuto suggerisci massimo 5 link verso contenuti affini, da inserire in anchor-text fortemente in target dal punto di vista semantico.
 
 Regole:
 
-- controlla se esistono articoli pertinenti dentro la Sitemap Blog
-- suggerisci link **solo se il topic è realmente affine**
+- verifica se esistono articoli pertinenti nella Sitemap Blog
+- suggerisci link solo se realmente pertinenti
 - non inventare URL
-- se non trovi contenuti pertinenti NON inserire link
+- usa anchor text naturali
+- usa HTML <a>
 
 ========================
-LINK VIAGGI / DESTINAZIONI
+LINK DESTINAZIONI
 ========================
 
-Verso la fine dell'articolo includi **1 o 2 link verso viaggi o destinazioni**.
+Verso la fine dell'articolo inserisci 1 o 2 link di viaggi o destinazioni.
 
 Regole:
 
-- i link devono provenire dalla Sitemap Sito Web
-- devono essere coerenti con la keyword principale
-- usa anchor text naturale
+- usa URL presenti nella Sitemap Sito Web
+- inserisci i link solo se coerenti con la keyword
+- non inventare URL
+- usa anchor text naturali
 - usa HTML <a>
 
 ========================
 PEOPLE ALSO ASK
 ========================
 
-Le domande PAA servono solo per identificare sotto-topic.
+Usa le domande PAA solo per individuare sotto-topic.
 
 PAA INSIGHTS:
 {paa_block}
@@ -275,7 +322,13 @@ PAA INSIGHTS:
 COMPETITOR DATA
 ========================
 
-Analizza questi contenuti ma non copiarli.
+Analizza questi contenuti per comprendere:
+
+- struttura
+- profondità
+- copertura dei topic
+
+Non copiarli.
 
 {merged}
 """

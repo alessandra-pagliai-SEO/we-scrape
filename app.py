@@ -25,19 +25,10 @@ OPENAI_KEY = st.sidebar.text_input(
 # UI PRINCIPALE
 # ======================
 
-col_logo, col_title = st.columns([1,4])
-
-with col_logo:
-    st.image(
-        "https://s3-eu-west-1.amazonaws.com/tpd/logos/62331cd876763552a17cd98b/0x0.png",
-        width=120
-    )
-
-with col_title:
-    st.title("WeScrape")
+st.title("SEO Article Generator")
 
 st.write(
-    "Genera articoli SEO nel tone of voice di WeRoad analizzando automaticamente i competitor nella SERP e le People Also Ask."
+    "Genera articoli SEO analizzando automaticamente i competitor nella SERP e le People Also Ask."
 )
 
 keyword = st.text_input("Main keyword")
@@ -46,7 +37,7 @@ num_results = st.number_input(
     "Numero contenuti su cui fare scraping",
     min_value=1,
     max_value=20,
-    value=10
+    value=5
 )
 
 country = st.text_input(
@@ -353,3 +344,93 @@ if generate:
             language,
             country
         )
+
+    if len(competitors_raw) == 0:
+
+        st.error("Nessun competitor trovato")
+        st.stop()
+
+    with st.spinner("Recupero insight dalla SERP (People Also Ask)..."):
+
+        paa_questions = get_people_also_ask(
+            keyword,
+            SERPER_KEY,
+            language,
+            country
+        )
+
+    if paa_questions:
+
+        st.write("### People Also Ask estratte dalla SERP")
+
+        for q in paa_questions:
+            st.write("-", q)
+
+    st.write("### Analisi contenuti competitor")
+
+    st.write("#### Pagine utilizzate per l'analisi")
+
+    for comp in competitors_raw:
+        st.write("-", comp["link"])
+
+    competitors = []
+
+    progress = st.progress(0)
+    status = st.empty()
+
+    total = len(competitors_raw)
+
+    for i, comp in enumerate(competitors_raw):
+
+        status.write(f"Analizzo: {comp['link']}")
+
+        html, text = fetch_page(comp["link"])
+
+        html_title, h1, meta_desc = extract_metadata(html)
+
+        competitors.append({
+            **comp,
+            "html_title": html_title,
+            "h1": h1,
+            "meta_desc": meta_desc,
+            "text": text
+        })
+
+        progress.progress((i + 1) / total)
+
+    status.empty()
+
+    with st.spinner("Generazione contenuto con AI..."):
+
+        title_tag, meta_description, article = generate_article(
+            keyword,
+            competitors,
+            paa_questions,
+            OPENAI_KEY,
+            language
+        )
+
+    st.subheader("SEO Metadata")
+
+    st.write("**Title Tag**")
+    st.write(title_tag)
+
+    st.write("**Meta Description**")
+    st.write(meta_description)
+
+    st.subheader("Articolo HTML generato")
+
+    st.code(article, language="html")
+
+    word_file = create_word_file(
+        title_tag,
+        meta_description,
+        article
+    )
+
+    st.download_button(
+        label="Scarica documento Word",
+        data=word_file,
+        file_name=f"contenuto_{keyword.replace(' ','_')}.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )

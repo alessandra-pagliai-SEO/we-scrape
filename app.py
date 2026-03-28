@@ -50,34 +50,10 @@ language = st.text_input(
     value="it"
 )
 
-site_url = st.text_input(
-    "Sito Web",
-    placeholder="https://example.com"
-)
-
-blog_url = st.text_input(
-    "Blog",
-    placeholder="https://example.com/blog"
-)
-
 generate = st.button("Genera contenuto")
 
 # ======================
-# UTILITY
-# ======================
-
-def normalize_domain(url):
-
-    url = url.strip()
-
-    if not url.startswith("http"):
-        url = "https://" + url
-
-    return url
-
-
-# ======================
-# SERP FUNCTIONS
+# FUNZIONI
 # ======================
 
 def get_competitors(keyword: str, num_results: int, serper_key: str, hl: str, gl: str):
@@ -173,10 +149,6 @@ def get_people_also_ask(keyword: str, serper_key: str, hl: str, gl: str):
     return paa
 
 
-# ======================
-# SCRAPING
-# ======================
-
 def fetch_page(url: str):
 
     try:
@@ -220,11 +192,7 @@ def extract_metadata(html: str):
     return title, h1, meta_desc
 
 
-# ======================
-# GENERAZIONE ARTICOLO
-# ======================
-
-def generate_article(keyword, competitors, paa, openai_key, language, site_url, blog_url):
+def generate_article(keyword: str, competitors: list, paa: list, openai_key: str, language: str):
 
     client = OpenAI(api_key=openai_key)
 
@@ -255,19 +223,13 @@ CONTENUTO:
     prompt = f"""
 Sei un content writer SEO esperto.
 
-Keyword:
+Scrivi un contenuto SEO completo per la keyword:
+
 {keyword}
 
-Lingua:
-{language}
+Language code della ricerca: {language}
 
-SITO WEB:
-{site_url}
-
-BLOG:
-{blog_url}
-
-Scrivi:
+Il risultato deve contenere:
 
 TITLE TAG (max 60 caratteri)
 
@@ -275,37 +237,29 @@ META DESCRIPTION (max 155 caratteri)
 
 ARTICOLO HTML (800-1200 parole)
 
+L'articolo deve essere scritto in HTML pronto per un editor CMS.
+
 Regole HTML:
 
-- usa <h2> <h3>
-- usa <p>
-- usa <ul> <ol>
-- usa <strong>
-- non includere html/head/body
+- usa <h2> e <h3> per i sottotitoli
+- usa <p> per i paragrafi
+- usa <ul> <ol> per liste
+- usa <strong> per enfasi
+- usa <table> se utile per confronti
+- NON includere <html>, <body>, <head>
 
-LINK INTERNI
+IMPORTANTE:
 
-Suggerisci massimo 4 link dal blog:
+Le domande People Also Ask NON devono essere riportate come Q&A.
+Devono essere usate solo per capire i sotto-temi.
 
-{blog_url}
-
-NON inventare URL.
-
-LINK DESTINAZIONI
-
-Verso fine articolo inserisci massimo 2 link presi da:
-
-{site_url}
-
-solo se pertinenti.
-
-PAA INSIGHTS
+PAA INSIGHTS:
 {paa_block}
 
-COMPETITOR DATA
+COMPETITOR DATA:
 {merged}
 
-Output:
+Restituisci il risultato nel formato:
 
 TITLE TAG:
 ...
@@ -343,10 +297,6 @@ ARTICLE HTML:
     return title, meta, article
 
 
-# ======================
-# WORD EXPORT
-# ======================
-
 def create_word_file(title_tag, meta_description, article):
 
     doc = Document()
@@ -376,19 +326,14 @@ def create_word_file(title_tag, meta_description, article):
 if generate:
 
     if not SERPER_KEY or not OPENAI_KEY:
-        st.error("Inserisci entrambe le API key")
+
+        st.error("Inserisci entrambe le API key nella sidebar")
         st.stop()
 
     if not keyword:
+
         st.error("Inserisci una keyword")
         st.stop()
-
-    if not site_url or not blog_url:
-        st.error("Inserisci Sito Web e Blog")
-        st.stop()
-
-    site_url = normalize_domain(site_url)
-    blog_url = normalize_domain(blog_url)
 
     with st.spinner("Recupero competitor dalla SERP..."):
 
@@ -401,10 +346,11 @@ if generate:
         )
 
     if len(competitors_raw) == 0:
+
         st.error("Nessun competitor trovato")
         st.stop()
 
-    with st.spinner("Recupero People Also Ask..."):
+    with st.spinner("Recupero insight dalla SERP (People Also Ask)..."):
 
         paa_questions = get_people_also_ask(
             keyword,
@@ -413,29 +359,19 @@ if generate:
             country
         )
 
-    # ======================
-    # MOSTRA PAA
-    # ======================
-
     if paa_questions:
 
-        st.write("### People Also Ask trovate nella SERP")
+        st.write("### People Also Ask estratte dalla SERP")
 
         for q in paa_questions:
             st.write("-", q)
 
-    # ======================
-    # MOSTRA LINK SCRAPING
-    # ======================
+    st.write("### Analisi contenuti competitor")
 
-    st.write("### URL utilizzati per l'analisi")
+    st.write("#### Pagine utilizzate per l'analisi")
 
     for comp in competitors_raw:
         st.write("-", comp["link"])
-
-    # ======================
-    # SCRAPING
-    # ======================
 
     competitors = []
 
@@ -471,9 +407,7 @@ if generate:
             competitors,
             paa_questions,
             OPENAI_KEY,
-            language,
-            site_url,
-            blog_url
+            language
         )
 
     st.subheader("SEO Metadata")

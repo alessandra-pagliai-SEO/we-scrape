@@ -31,7 +31,7 @@ st.image(
 )
 
 # ======================
-# UI
+# UI PRINCIPALE
 # ======================
 
 st.title("SEO Article Generator")
@@ -132,7 +132,10 @@ def get_competitors(keyword, num_results, serper_key, hl, gl):
 
 def get_paa(keyword, key, hl, gl):
 
-    url = "https://google.serper.dev/search"
+    headers = {
+        "X-API-KEY": key,
+        "Content-Type": "application/json"
+    }
 
     payload = {
         "q": keyword,
@@ -140,18 +143,45 @@ def get_paa(keyword, key, hl, gl):
         "hl": hl
     }
 
-    headers = {
-        "X-API-KEY": key,
-        "Content-Type": "application/json"
-    }
+    questions = []
 
-    r = requests.post(url, json=payload, headers=headers)
+    # prima chiamata
+    r = requests.post(
+        "https://google.serper.dev/search",
+        json=payload,
+        headers=headers
+    )
 
     data = r.json()
 
-    questions = data.get("peopleAlsoAsk", [])
+    if "peopleAlsoAsk" in data:
 
-    return [q.get("question") for q in questions if q.get("question")]
+        for q in data["peopleAlsoAsk"]:
+            question = q.get("question")
+
+            if question:
+                questions.append(question)
+
+    # fallback endpoint
+    if not questions:
+
+        r = requests.post(
+            "https://google.serper.dev/related",
+            json=payload,
+            headers=headers
+        )
+
+        data = r.json()
+
+        related = data.get("relatedSearches", [])
+
+        for item in related:
+            q = item.get("query")
+
+            if q:
+                questions.append(q)
+
+    return questions[:10]
 
 
 def fetch_page(url):
@@ -160,14 +190,16 @@ def fetch_page(url):
 
         r = requests.get(url, timeout=10)
 
-        soup = BeautifulSoup(r.text, "html.parser")
+        html = r.text
+
+        soup = BeautifulSoup(html, "html.parser")
 
         for tag in soup(["script", "style", "noscript"]):
             tag.decompose()
 
         text = " ".join(soup.get_text().split())
 
-        return r.text, text[:18000]
+        return html, text[:18000]
 
     except:
 
@@ -181,6 +213,7 @@ def extract_metadata(html):
     title = soup.title.string.strip() if soup.title else ""
 
     h1_tag = soup.find("h1")
+
     h1 = h1_tag.get_text(strip=True) if h1_tag else ""
 
     meta_desc = ""
@@ -218,17 +251,23 @@ CONTENUTO:
     paa_block = "\n".join([f"- {q}" for q in paa])
 
     prompt = f"""
-Scrivi un contenuto SEO per la keyword:
+Scrivi un contenuto SEO completo per la keyword:
 
 {keyword}
 
 Lingua: {language}
 
-TITLE TAG max 60 caratteri
-META DESCRIPTION max 155 caratteri
-ARTICOLO HTML 800-1500 parole
+Il risultato deve contenere:
 
-Non usare <html>, <body>, <head>.
+TITLE TAG (max 60 caratteri)
+
+META DESCRIPTION (max 155 caratteri)
+
+ARTICOLO HTML (800-1500 parole)
+
+Non includere <html>, <body>, <head>.
+
+Le PAA devono servire come insight ma non essere riportate come Q&A.
 
 PAA INSIGHTS:
 {paa_block}
@@ -287,15 +326,17 @@ def create_word_file(title, meta, article):
     doc.add_heading("HTML Article", level=2)
     doc.add_paragraph(article)
 
-    buf = BytesIO()
-    doc.save(buf)
-    buf.seek(0)
+    buffer = BytesIO()
 
-    return buf
+    doc.save(buffer)
+
+    buffer.seek(0)
+
+    return buffer
 
 
 # ======================
-# EXECUTION
+# ESECUZIONE
 # ======================
 
 if generate:
@@ -326,7 +367,7 @@ if generate:
         )
 
     # ======================
-    # BLOCCO SERP PERSISTENTE
+    # SERP INSIGHTS (persistenti)
     # ======================
 
     with serp_box.container():
@@ -340,8 +381,8 @@ if generate:
 
         st.write("### URL analizzate")
 
-        for c in competitors_raw:
-            st.write("-", c["link"])
+        for comp in competitors_raw:
+            st.write("-", comp["link"])
 
     # ======================
     # SCRAPING
@@ -360,13 +401,13 @@ if generate:
 
         html, text = fetch_page(comp["link"])
 
-        title, h1, meta = extract_metadata(html)
+        html_title, h1, meta_desc = extract_metadata(html)
 
         competitors.append({
             **comp,
-            "html_title": title,
+            "html_title": html_title,
             "h1": h1,
-            "meta_desc": meta,
+            "meta_desc": meta_desc,
             "text": text
         })
 
@@ -375,7 +416,7 @@ if generate:
     status.empty()
 
     # ======================
-    # GENERAZIONE ARTICOLO
+    # GENERAZIONE AI
     # ======================
 
     with st.spinner("Generazione articolo con AI..."):
@@ -404,11 +445,11 @@ if generate:
 
     st.code(article, language="html")
 
-    file = create_word_file(title_tag, meta_desc, article)
+    word_file = create_word_file(title_tag, meta_desc, article)
 
     st.download_button(
-        label="Scarica Word",
-        data=file,
-        file_name=f"{keyword}.docx",
+        label="Scarica documento Word",
+        data=word_file,
+        file_name=f"{keyword.replace(' ','_')}.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )

@@ -221,7 +221,7 @@ CONTENUTO:
         paa_block = "\n".join([f"- {q}" for q in paa])
 
     prompt = f"""
-Sei un content writer SEO esperto.
+Sei un content writer SEO esperto. Siamo nel 2026.
 
 Scrivi un contenuto SEO completo per la keyword:
 
@@ -231,11 +231,11 @@ Language code della ricerca: {language}
 
 Il risultato deve contenere:
 
-TITLE TAG (max 60 caratteri)
+TITLE TAG (max 60 caratteri), deve contenere la keyword principale e - se rientra nella lunghezza- correlate ad alto volume di ricerca
 
-META DESCRIPTION (max 155 caratteri)
+META DESCRIPTION (max 155 caratteri), con keyword principale e soft CTA
 
-ARTICOLO HTML (800-1200 parole)
+ARTICOLO HTML (800-1500 parole)
 
 L'articolo deve essere scritto in HTML pronto per un editor CMS.
 
@@ -252,6 +252,14 @@ IMPORTANTE:
 
 Le domande People Also Ask NON devono essere riportate come Q&A.
 Devono essere usate solo per capire i sotto-temi.
+
+TONE OF VOICE E STILE:
+Usa un tone of voice simpatico e scherzoso.
+All'inizio del paragrafo di sotto di ogni headings, rispondi in maniera diretta alla domanda implicita o esplicita contenuta in esso. In questo caso non utilizzare un tono simpatico e scherzoso.
+Scrivi in maniera ricca e discorsiva, non utilizzare paragrafi schematici.
+Se fai dei confronti, e.g. piazze, monumenti, punti di interesse usa una tabella. Le misure delle tabelline devono essere ottimali per un ViewPort mobile e quindi essere leggibili per esempio da uno smartphone
+Evidenzia con grassetti le entità chiave, e.g. nomi delle destinazioni, punti di interesse, meteo e temperature, etc.
+Evita testo di riempimento. Se un passaggio non aggiunge valore informativo non lo inserire
 
 PAA INSIGHTS:
 {paa_block}

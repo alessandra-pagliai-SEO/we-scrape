@@ -22,13 +22,22 @@ OPENAI_KEY = st.sidebar.text_input(
 )
 
 # ======================
+# LOGO
+# ======================
+
+st.image(
+    "https://s3-eu-west-1.amazonaws.com/tpd/logos/62331cd876763552a17cd98b/0x0.png",
+    width=220
+)
+
+# ======================
 # UI PRINCIPALE
 # ======================
 
-st.title("SEO Article Generator")
+st.title("WeScrape")
 
 st.write(
-    "Genera articoli SEO analizzando automaticamente i competitor nella SERP e le People Also Ask."
+    "Tool che genera articoli SEO nel tone of voice di WeRoad analizzando automaticamente i competitor nella SERP e le People Also Ask."
 )
 
 keyword = st.text_input("Main keyword")
@@ -37,7 +46,7 @@ num_results = st.number_input(
     "Numero contenuti su cui fare scraping",
     min_value=1,
     max_value=20,
-    value=5
+    value=10
 )
 
 country = st.text_input(
@@ -51,6 +60,13 @@ language = st.text_input(
 )
 
 generate = st.button("Genera contenuto")
+
+# ======================
+# CONTAINER SERP OUTPUT
+# ======================
+
+paa_container = st.container()
+competitor_container = st.container()
 
 # ======================
 # FUNZIONI
@@ -231,35 +247,22 @@ Language code della ricerca: {language}
 
 Il risultato deve contenere:
 
-TITLE TAG (max 60 caratteri), deve contenere la keyword principale e - se rientra nella lunghezza- correlate ad alto volume di ricerca
+TITLE TAG (max 60 caratteri)
 
-META DESCRIPTION (max 155 caratteri), con keyword principale e soft CTA
+META DESCRIPTION (max 155 caratteri)
 
 ARTICOLO HTML (800-1500 parole)
 
-L'articolo deve essere scritto in HTML pronto per un editor CMS.
-
 Regole HTML:
 
-- usa <h2> e <h3> per i sottotitoli
-- usa <p> per i paragrafi
-- usa <ul> <ol> per liste
-- usa <strong> per enfasi
-- usa <table> se utile per confronti
+- usa <h2> e <h3>
+- usa <p>
+- usa <ul> <ol>
+- usa <strong>
+- usa <table> se utile
 - NON includere <html>, <body>, <head>
 
-IMPORTANTE:
-
 Le domande People Also Ask NON devono essere riportate come Q&A.
-Devono essere usate solo per capire i sotto-temi.
-
-TONE OF VOICE E STILE:
-Usa un tone of voice simpatico e scherzoso.
-All'inizio del paragrafo di sotto di ogni headings, rispondi in maniera diretta alla domanda implicita o esplicita contenuta in esso. In questo caso non utilizzare un tono simpatico e scherzoso.
-Scrivi in maniera ricca e discorsiva, non utilizzare paragrafi schematici.
-Se fai dei confronti, e.g. piazze, monumenti, punti di interesse usa una tabella. Le misure delle tabelline devono essere ottimali per un ViewPort mobile e quindi essere leggibili per esempio da uno smartphone
-Evidenzia con grassetti le entità chiave, e.g. nomi delle destinazioni, punti di interesse, meteo e temperature, etc.
-Evita testo di riempimento. Se un passaggio non aggiunge valore informativo non lo inserire
 
 PAA INSIGHTS:
 {paa_block}
@@ -367,19 +370,31 @@ if generate:
             country
         )
 
+    # ======================
+    # DISPLAY SERP DATA
+    # ======================
+
     if paa_questions:
 
-        st.write("### People Also Ask estratte dalla SERP")
+        with paa_container:
 
-        for q in paa_questions:
-            st.write("-", q)
+            st.write("### People Also Ask estratte dalla SERP")
 
-    st.write("### Analisi contenuti competitor")
+            for q in paa_questions:
+                st.write("-", q)
 
-    st.write("#### Pagine utilizzate per l'analisi")
+    with competitor_container:
 
-    for comp in competitors_raw:
-        st.write("-", comp["link"])
+        st.write("### Analisi contenuti competitor")
+
+        st.write("#### Pagine utilizzate per l'analisi")
+
+        for comp in competitors_raw:
+            st.write("-", comp["link"])
+
+    # ======================
+    # SCRAPING
+    # ======================
 
     competitors = []
 
@@ -408,6 +423,10 @@ if generate:
 
     status.empty()
 
+    # ======================
+    # GENERAZIONE AI
+    # ======================
+
     with st.spinner("Generazione contenuto con AI..."):
 
         title_tag, meta_description, article = generate_article(
@@ -417,6 +436,10 @@ if generate:
             OPENAI_KEY,
             language
         )
+
+    # ======================
+    # OUTPUT
+    # ======================
 
     st.subheader("SEO Metadata")
 

@@ -119,6 +119,7 @@ def get_people_also_ask(keyword: str, serpapi_key: str, hl: str, gl: str):
             continue
 
         clean_q = q.strip()
+
         if clean_q in seen:
             continue
 
@@ -171,6 +172,7 @@ def extract_metadata(html: str):
 
     meta_desc = ""
     meta = soup.find("meta", attrs={"name": "description"})
+
     if meta and "content" in meta.attrs:
         meta_desc = meta["content"].strip()
 
@@ -304,22 +306,22 @@ def create_word_file(title_tag: str, meta_description: str, article: str):
 st.sidebar.title("API Configuration")
 
 st.sidebar.header("SERP scraping")
-SERPER_KEY = st.sidebar.text_input(
-    "Serper.dev API Key",
-    type="password"
-)
+SERPER_KEY = st.sidebar.text_input("Serper.dev API Key", type="password")
 
 st.sidebar.header("People Also Ask")
-SERPAPI_KEY = st.sidebar.text_input(
-    "SerpAPI Key",
-    type="password"
-)
+SERPAPI_KEY = st.sidebar.text_input("SerpAPI Key", type="password")
 
 st.sidebar.header("AI generation")
-OPENAI_KEY = st.sidebar.text_input(
-    "OpenAI API Key",
-    type="password"
-)
+OPENAI_KEY = st.sidebar.text_input("OpenAI API Key", type="password")
+
+# ======================
+# LOGO
+# ======================
+
+logo_url = st.sidebar.text_input("https://s3-eu-west-1.amazonaws.com/tpd/logos/62331cd876763552a17cd98b/0x0.png")
+
+if logo_url:
+    st.image(logo_url, width=220)
 
 
 # ======================
@@ -329,8 +331,11 @@ OPENAI_KEY = st.sidebar.text_input(
 st.title("SEO Article Generator")
 
 keyword = st.text_input("Keyword")
+
 num_results = st.slider("Numero competitor organici da scrapare", 1, 20, 5)
+
 country = st.text_input("Country code", "it")
+
 language = st.text_input("Language code", "it")
 
 generate = st.button("Genera contenuto")
@@ -341,6 +346,7 @@ generate = st.button("Genera contenuto")
 # ======================
 
 if generate:
+
     if not SERPER_KEY or not SERPAPI_KEY or not OPENAI_KEY:
         st.error("Inserisci tutte le API key nella sidebar.")
         st.stop()
@@ -360,20 +366,8 @@ if generate:
     progress = st.progress(0)
 
     with st.spinner("Recupero risultati organici e People Also Ask..."):
-        competitors = get_competitors(
-            keyword=keyword,
-            num_results=num_results,
-            serper_key=SERPER_KEY,
-            hl=language,
-            gl=country
-        )
-
-        paa = get_people_also_ask(
-            keyword=keyword,
-            serpapi_key=SERPAPI_KEY,
-            hl=language,
-            gl=country
-        )
+        competitors = get_competitors(keyword, num_results, SERPER_KEY, language, country)
+        paa = get_people_also_ask(keyword, SERPAPI_KEY, language, country)
 
     if not competitors:
         st.error("Nessun risultato organico trovato.")
@@ -381,16 +375,14 @@ if generate:
 
     with paa_placeholder.container():
         st.markdown("### People Also Ask")
-        if paa:
-            for q in paa:
-                st.write("-", q)
-        else:
-            st.caption("Nessuna PAA trovata.")
+        for q in paa:
+            st.write("-", q)
 
     enriched = []
     scraped = []
 
     for i, comp in enumerate(competitors, start=1):
+
         scraped.append(comp["link"])
 
         with url_placeholder.container():
@@ -412,12 +404,13 @@ if generate:
         progress.progress(i / len(competitors))
 
     with st.spinner(f"Generazione articolo su {len(enriched)} contenuti organici..."):
+
         title_tag, meta_description, article = generate_article(
-            keyword=keyword,
-            competitors=enriched,
-            paa=paa,
-            openai_key=OPENAI_KEY,
-            language=language
+            keyword,
+            enriched,
+            paa,
+            OPENAI_KEY,
+            language
         )
 
     st.session_state.title_tag = title_tag
@@ -430,6 +423,7 @@ if generate:
 # ======================
 
 if st.session_state.article:
+
     st.subheader("SEO Metadata")
 
     st.write("**Title Tag**")
@@ -439,6 +433,7 @@ if st.session_state.article:
     st.write(st.session_state.meta_description)
 
     st.subheader("Articolo HTML")
+
     st.code(st.session_state.article, language="html")
 
     word_file = create_word_file(

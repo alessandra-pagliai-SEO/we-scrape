@@ -343,7 +343,17 @@ OPENAI_KEY = st.sidebar.text_input(
 # UI
 # ======================
 
-st.title("SEO Article Generator")
+LOGO_URL = "https://s3-eu-west-1.amazonaws.com/tpd/logos/62331cd876763552a17cd98b/0x0.png"
+
+st.markdown(
+    f"""
+    <div style="display:flex; justify-content:center;">
+        <img src="{LOGO_URL}" width="220">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+st.title("WeScrape")
 
 keyword = st.text_input("Keyword")
 num_results = st.slider("Numero competitor organici da scrapare", 1, 20, 5)

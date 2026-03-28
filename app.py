@@ -25,7 +25,16 @@ OPENAI_KEY = st.sidebar.text_input(
 # UI PRINCIPALE
 # ======================
 
-st.title("SEO Article Generator")
+col1, col2 = st.columns([1,4])
+
+with col1:
+    st.image(
+        "https://s3-eu-west-1.amazonaws.com/tpd/logos/62331cd876763552a17cd98b/0x0.png",
+        width=120
+    )
+
+with col2:
+    st.title("SEO Article Generator")
 
 st.write(
     "Genera articoli SEO analizzando automaticamente i competitor nella SERP e le People Also Ask."

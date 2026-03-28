@@ -219,7 +219,7 @@ ARTICOLO:
 
 REGOLE HTML:
 
-- usa <h1>, <h2>, <h3>
+- usa <h1>, <h2>, <h3> (ognuno deve iniziare con lettere maiuscola)
 - usa <p> per i paragrafi
 - usa <ul> e <ol> per le liste
 - usa <strong> per evidenziare entità importanti

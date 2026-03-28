@@ -33,16 +33,6 @@ st.write(
 
 keyword = st.text_input("Main keyword")
 
-sitemap_site = st.text_input(
-    "Sitemap Sito Web",
-    placeholder="https://example.com/sitemap.xml"
-)
-
-sitemap_blog = st.text_input(
-    "Sitemap Blog",
-    placeholder="https://example.com/blog-sitemap.xml"
-)
-
 num_results = st.number_input(
     "Numero contenuti su cui fare scraping",
     min_value=1,
@@ -170,34 +160,7 @@ def extract_metadata(html: str):
     return title, h1, meta_desc
 
 
-def parse_sitemap(sitemap_url: str):
-
-    urls = []
-
-    if not sitemap_url:
-        return urls
-
-    try:
-
-        resp = requests.get(sitemap_url, timeout=15)
-
-        soup = BeautifulSoup(resp.content, "xml")
-
-        for loc in soup.find_all("loc"):
-
-            url = loc.text.strip()
-
-            if url:
-                urls.append(url)
-
-        return urls[:200]
-
-    except Exception:
-
-        return []
-
-
-def generate_article(keyword: str, competitors: list, paa: list, blog_urls: list, site_urls: list, openai_key: str, language: str):
+def generate_article(keyword: str, competitors: list, paa: list, openai_key: str, language: str):
 
     client = OpenAI(api_key=openai_key)
 
@@ -225,140 +188,46 @@ CONTENUTO:
     if paa:
         paa_block = "\n".join([f"- {q}" for q in paa])
 
-    blog_links_block = ""
-
-    if blog_urls:
-        blog_links_block = "\n".join(blog_urls[:50])
-
-    site_links_block = ""
-
-    if site_urls:
-        site_links_block = "\n".join(site_urls[:50])
-
     prompt = f"""
-Sei un SEO content strategist e copywriter esperto.
+Sei un content writer SEO esperto.
 
-Il tuo compito è scrivere un articolo SEO di alta qualità.
+Scrivi un contenuto SEO completo per la keyword:
 
-KEYWORD PRINCIPALE:
 {keyword}
 
 Language code della ricerca: {language}
 
----
-
-OUTPUT RICHIESTO
+Il risultato deve contenere:
 
 TITLE TAG (max 60 caratteri)
 
 META DESCRIPTION (max 155 caratteri)
 
-ARTICOLO HTML (900-1300 parole)
+ARTICOLO HTML (800-1200 parole)
 
----
+L'articolo deve essere scritto in HTML pronto per un editor CMS.
 
-STILE EDITORIALE
+Regole HTML:
 
-L'articolo deve essere:
+- usa <h2> e <h3> per i sottotitoli
+- usa <p> per i paragrafi
+- usa <ul> <ol> per liste
+- usa <strong> per enfasi
+- usa <table> se utile per confronti
+- NON includere <html>, <body>, <head>
 
-- ricco
-- discorsivo
-- naturale
-- approfondito
-- fluido da leggere
+IMPORTANTE:
 
-EVITA:
-
-- elenchi schematici
-- struttura tipo FAQ
-- blocchi troppo corti
-- tono robotico
-
-Il testo deve sembrare scritto da un giornalista esperto.
-
----
-
-REGOLE HTML
-
-Usa solo:
-
-<h2>
-<h3>
-<p>
-<ul>
-<ol>
-<strong>
-<table> se utile
-
-NON includere:
-
-<html>
-<head>
-<body>
-
----
-
-USO DELLE PEOPLE ALSO ASK
-
-Le domande PAA NON devono essere riportate come Q&A.
-
-Devono solo guidare i sotto-temi dell'articolo.
+Le domande People Also Ask NON devono essere riportate come Q&A.
+Devono essere usate solo per capire i sotto-temi.
 
 PAA INSIGHTS:
-
 {paa_block}
 
----
-
-LINK INTERNI AL BLOG
-
-Analizza gli URL della sitemap blog.
-
-Se trovi articoli tematicamente pertinenti alla keyword,
-inserisci MASSIMO 4 link interni nel testo.
-
-I link devono:
-
-- essere contestuali
-- avere anchor text naturale
-- usare keyword correlate
-- essere inseriti nel corpo del testo
-
-Usa SOLO URL presenti nella sitemap.
-
-BLOG SITEMAP:
-
-{blog_links_block}
-
----
-
-LINK DESTINAZIONI / VIAGGI
-
-Verso la fine dell'articolo puoi inserire
-massimo 2 link verso destinazioni o pagine travel
-solo se coerenti con la keyword.
-
-I link devono:
-
-- avere anchor text naturale
-- essere contestuali
-- essere inseriti nella narrazione
-
-Usa SOLO URL presenti nella sitemap.
-
-SITE SITEMAP:
-
-{site_links_block}
-
----
-
-COMPETITOR DATA
-
+COMPETITOR DATA:
 {merged}
 
----
-
-FORMATO RISPOSTA
+Restituisci il risultato nel formato:
 
 TITLE TAG:
 ...
@@ -434,11 +303,6 @@ if generate:
         st.error("Inserisci una keyword")
         st.stop()
 
-    with st.spinner("Analizzo sitemap..."):
-
-        site_urls = parse_sitemap(sitemap_site)
-        blog_urls = parse_sitemap(sitemap_blog)
-
     with st.spinner("Recupero competitor dalla SERP..."):
 
         competitors_raw = get_competitors(
@@ -510,8 +374,6 @@ if generate:
             keyword,
             competitors,
             paa_questions,
-            blog_urls,
-            site_urls,
             OPENAI_KEY,
             language
         )

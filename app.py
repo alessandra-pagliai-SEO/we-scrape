@@ -77,7 +77,7 @@ def normalize_domain(url):
 
 
 # ======================
-# FUNZIONI SERP
+# SERP FUNCTIONS
 # ======================
 
 def get_competitors(keyword: str, num_results: int, serper_key: str, hl: str, gl: str):
@@ -174,7 +174,7 @@ def get_people_also_ask(keyword: str, serper_key: str, hl: str, gl: str):
 
 
 # ======================
-# SCRAPING PAGINE
+# SCRAPING
 # ======================
 
 def fetch_page(url: str):
@@ -214,6 +214,7 @@ def extract_metadata(html: str):
     meta = soup.find("meta", attrs={"name": "description"})
 
     if meta and "content" in meta.attrs:
+
         meta_desc = meta["content"].strip()
 
     return title, h1, meta_desc
@@ -223,7 +224,7 @@ def extract_metadata(html: str):
 # GENERAZIONE ARTICOLO
 # ======================
 
-def generate_article(keyword: str, competitors: list, paa: list, openai_key: str, language: str, site_url: str, blog_url: str):
+def generate_article(keyword, competitors, paa, openai_key, language, site_url, blog_url):
 
     client = OpenAI(api_key=openai_key)
 
@@ -254,19 +255,19 @@ CONTENUTO:
     prompt = f"""
 Sei un content writer SEO esperto.
 
-Scrivi un contenuto SEO completo per la keyword:
-
+Keyword:
 {keyword}
 
-Language code della ricerca: {language}
+Lingua:
+{language}
 
-SITO WEB DI RIFERIMENTO:
+SITO WEB:
 {site_url}
 
-BLOG DI RIFERIMENTO:
+BLOG:
 {blog_url}
 
-Il risultato deve contenere:
+Scrivi:
 
 TITLE TAG (max 60 caratteri)
 
@@ -274,45 +275,29 @@ META DESCRIPTION (max 155 caratteri)
 
 ARTICOLO HTML (800-1200 parole)
 
-L'articolo deve essere scritto in HTML pronto per un editor CMS.
-
 Regole HTML:
 
-- usa <h2> e <h3>
+- usa <h2> <h3>
 - usa <p>
 - usa <ul> <ol>
 - usa <strong>
-- usa <table> se utile
-- NON includere <html>, <body>, <head>
+- non includere html/head/body
 
-LINKING STRATEGY
+LINK INTERNI
 
-1. LINK INTERNI
-
-Suggerisci massimo 4 link interni verso articoli del blog:
+Suggerisci massimo 4 link dal blog:
 
 {blog_url}
 
-Regole:
+NON inventare URL.
 
-- inserisci link SOLO se trovi contenuti realmente pertinenti
-- usa anchor text con keyword correlate
-- NON inventare URL
-- devono appartenere al dominio del blog
+LINK DESTINAZIONI
 
-2. LINK VIAGGI / DESTINAZIONI
-
-Verso la fine dell'articolo includi massimo 2 link verso destinazioni o viaggi.
-
-Puoi prenderli da:
+Verso fine articolo inserisci massimo 2 link presi da:
 
 {site_url}
 
-Regole:
-
-- inserisci solo se correlati alla keyword
-- usa anchor text naturale
-- gli URL devono essere reali
+solo se pertinenti.
 
 PAA INSIGHTS
 {paa_block}
@@ -320,7 +305,7 @@ PAA INSIGHTS
 COMPETITOR DATA
 {merged}
 
-Restituisci il risultato nel formato:
+Output:
 
 TITLE TAG:
 ...
@@ -415,6 +400,10 @@ if generate:
             country
         )
 
+    if len(competitors_raw) == 0:
+        st.error("Nessun competitor trovato")
+        st.stop()
+
     with st.spinner("Recupero People Also Ask..."):
 
         paa_questions = get_people_also_ask(
@@ -424,13 +413,40 @@ if generate:
             country
         )
 
+    # ======================
+    # MOSTRA PAA
+    # ======================
+
+    if paa_questions:
+
+        st.write("### People Also Ask trovate nella SERP")
+
+        for q in paa_questions:
+            st.write("-", q)
+
+    # ======================
+    # MOSTRA LINK SCRAPING
+    # ======================
+
+    st.write("### URL utilizzati per l'analisi")
+
+    for comp in competitors_raw:
+        st.write("-", comp["link"])
+
+    # ======================
+    # SCRAPING
+    # ======================
+
     competitors = []
 
     progress = st.progress(0)
+    status = st.empty()
 
     total = len(competitors_raw)
 
     for i, comp in enumerate(competitors_raw):
+
+        status.write(f"Analizzo: {comp['link']}")
 
         html, text = fetch_page(comp["link"])
 
@@ -445,6 +461,8 @@ if generate:
         })
 
         progress.progress((i + 1) / total)
+
+    status.empty()
 
     with st.spinner("Generazione contenuto con AI..."):
 

@@ -349,13 +349,17 @@ LOGO_URL = "https://s3-eu-west-1.amazonaws.com/tpd/logos/62331cd876763552a17cd98
 
 st.markdown(
     f"""
-    <div style="display:flex; justify-content:center;">
+    <div style="text-align:center; padding-top:10px;">
         <img src="{LOGO_URL}" width="220">
+        <h1 style="margin-top:15px; margin-bottom:5px;">WeScrape</h1>
+        <p style="font-size:18px; color:#6b7280; margin-bottom:25px;">
+        Genera contenuti SEO con il tone of voice di WeRoad analizzando le PAA e i contenuti dei competitor.
+        </p>
+        <hr style="margin-top:10px; margin-bottom:25px;">
     </div>
     """,
     unsafe_allow_html=True
 )
-st.title("WeScrape")
 
 keyword = st.text_input("Keyword")
 num_results = st.slider("Numero competitor organici da analizzare", 1, 20, 5)

@@ -36,8 +36,8 @@ keyword = st.text_input("Main keyword")
 num_results = st.number_input(
     "Numero contenuti su cui fare scraping",
     min_value=1,
-    max_value=10,
-    value=3
+    max_value=20,
+    value=10
 )
 
 country = st.text_input(

@@ -9,181 +9,132 @@ from io import BytesIO
 # SESSION STATE
 # ======================
 
-if "paa_questions" not in st.session_state:
-    st.session_state.paa_questions = []
+if "paa" not in st.session_state:
+    st.session_state.paa = []
 
-if "competitors_raw" not in st.session_state:
-    st.session_state.competitors_raw = []
+if "competitors" not in st.session_state:
+    st.session_state.competitors = []
 
 if "competitors_enriched" not in st.session_state:
     st.session_state.competitors_enriched = []
 
-if "title_tag" not in st.session_state:
-    st.session_state.title_tag = ""
-
-if "meta_description" not in st.session_state:
-    st.session_state.meta_description = ""
-
 if "article" not in st.session_state:
     st.session_state.article = ""
 
-if "start_generation" not in st.session_state:
-    st.session_state.start_generation = False
+if "title_tag" not in st.session_state:
+    st.session_state.title_tag = ""
+
+if "meta_desc" not in st.session_state:
+    st.session_state.meta_desc = ""
 
 if "serp_ready" not in st.session_state:
     st.session_state.serp_ready = False
 
-if "last_keyword" not in st.session_state:
-    st.session_state.last_keyword = ""
-
-if "last_country" not in st.session_state:
-    st.session_state.last_country = "it"
-
-if "last_language" not in st.session_state:
-    st.session_state.last_language = "it"
-
-if "last_num_results" not in st.session_state:
-    st.session_state.last_num_results = 5
+if "generate_step" not in st.session_state:
+    st.session_state.generate_step = False
 
 
 # ======================
 # FUNZIONI
 # ======================
 
-def get_competitors(keyword: str, num_results: int, serper_key: str, hl: str, gl: str):
+def get_competitors(keyword, num_results, key, hl, gl):
+
     url = "https://google.serper.dev/search"
 
     headers = {
-        "X-API-KEY": serper_key,
-        "Content-Type": "application/json"
-    }
-
-    competitors = []
-    start = 0
-
-    blocked_domains = [
-        "youtube.com",
-        "youtu.be",
-        "tiktok.com",
-        "pinterest.com",
-        "facebook.com",
-        "instagram.com"
-    ]
-
-    while len(competitors) < num_results and start < 40:
-        payload = {
-            "q": keyword,
-            "gl": gl,
-            "hl": hl,
-            "num": 10,
-            "start": start
-        }
-
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
-        response.raise_for_status()
-        data = response.json()
-
-        organic = data.get("organic", [])
-
-        for item in organic:
-            link = item.get("link")
-
-            if not link:
-                continue
-
-            if any(domain in link for domain in blocked_domains):
-                continue
-
-            competitors.append({
-                "title": item.get("title", ""),
-                "link": link
-            })
-
-            if len(competitors) >= num_results:
-                break
-
-        start += 10
-
-    return competitors[:num_results]
-
-
-def get_people_also_ask(keyword: str, serper_key: str, hl: str, gl: str):
-    headers = {
-        "X-API-KEY": serper_key,
+        "X-API-KEY": key,
         "Content-Type": "application/json"
     }
 
     payload = {
         "q": keyword,
         "gl": gl,
-        "hl": hl
+        "hl": hl,
+        "num": num_results
     }
+
+    r = requests.post(url, json=payload, headers=headers)
+
+    data = r.json()
+
+    organic = data.get("organic", [])
+
+    results = []
+
+    blocked = [
+        "youtube.com",
+        "tiktok.com",
+        "instagram.com",
+        "facebook.com",
+        "pinterest.com"
+    ]
+
+    for item in organic:
+
+        link = item.get("link")
+
+        if not link:
+            continue
+
+        if any(b in link for b in blocked):
+            continue
+
+        results.append({
+            "title": item.get("title"),
+            "link": link
+        })
+
+    return results[:num_results]
+
+
+def get_people_also_ask(keyword, key, hl, gl):
+
+    url = "https://google.serper.dev/search"
+
+    headers = {
+        "X-API-KEY": key,
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "q": keyword,
+        "gl": gl,
+        "hl": hl,
+        "num": 10
+    }
+
+    r = requests.post(url, json=payload, headers=headers)
+
+    data = r.json()
 
     questions = []
 
-    # Primo tentativo: /search
-    try:
-        response = requests.post(
-            "https://google.serper.dev/search",
-            json=payload,
-            headers=headers,
-            timeout=30
-        )
-        response.raise_for_status()
-        data = response.json()
+    if "peopleAlsoAsk" in data:
 
-        for item in data.get("peopleAlsoAsk", []):
-            question = item.get("question")
+        for q in data["peopleAlsoAsk"]:
+
+            question = q.get("question")
+
             if question:
                 questions.append(question)
-    except Exception:
-        pass
 
-    # Fallback: /related
-    if not questions:
-        try:
-            response = requests.post(
-                "https://google.serper.dev/related",
-                json=payload,
-                headers=headers,
-                timeout=30
-            )
-            response.raise_for_status()
-            data = response.json()
-
-            for item in data.get("relatedSearches", []):
-                question = item.get("query")
-                if question:
-                    questions.append(question)
-        except Exception:
-            pass
-
-    # deduplica preservando l'ordine
-    unique_questions = []
-    seen = set()
-
-    for q in questions:
-        if q not in seen:
-            seen.add(q)
-            unique_questions.append(q)
-
-    return unique_questions[:10]
+    return questions
 
 
-def fetch_page(url: str):
+def fetch_page(url):
+
     try:
-        resp = requests.get(
+
+        r = requests.get(
             url,
             timeout=15,
             headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/124.0.0.0 Safari/537.36"
-                )
+                "User-Agent": "Mozilla/5.0"
             }
         )
-        html = resp.text
+
+        html = r.text
 
         soup = BeautifulSoup(html, "html.parser")
 
@@ -194,19 +145,23 @@ def fetch_page(url: str):
 
         return html, text[:18000]
 
-    except Exception:
+    except:
+
         return "", ""
 
 
-def extract_metadata(html: str):
+def extract_metadata(html):
+
     soup = BeautifulSoup(html, "html.parser")
 
-    title = soup.title.string.strip() if soup.title and soup.title.string else ""
+    title = soup.title.string.strip() if soup.title else ""
 
     h1_tag = soup.find("h1")
+
     h1 = h1_tag.get_text(strip=True) if h1_tag else ""
 
     meta_desc = ""
+
     meta = soup.find("meta", attrs={"name": "description"})
 
     if meta and "content" in meta.attrs:
@@ -215,12 +170,14 @@ def extract_metadata(html: str):
     return title, h1, meta_desc
 
 
-def generate_article(keyword: str, competitors: list, paa: list, openai_key: str, language: str):
-    client = OpenAI(api_key=openai_key)
+def generate_article(keyword, competitors, paa, key, language):
+
+    client = OpenAI(api_key=key)
 
     merged = ""
 
     for i, comp in enumerate(competitors, start=1):
+
         merged += f"""
 COMPETITOR {i}
 
@@ -236,48 +193,27 @@ CONTENUTO:
 ------------------------------------
 """
 
-    paa_block = "\n".join([f"- {q}" for q in paa]) if paa else "Nessuna PAA disponibile."
+    paa_block = "\n".join([f"- {q}" for q in paa])
 
     prompt = f"""
-Sei un content writer SEO esperto. Siamo nel 2026.
-
-Scrivi un contenuto SEO completo per la keyword:
+Scrivi un articolo SEO per la keyword:
 
 {keyword}
 
-Language code della ricerca: {language}
+Lingua: {language}
 
-Il risultato deve contenere:
-
-TITLE TAG (max 60 caratteri), deve contenere la keyword principale e - se rientra nella lunghezza - correlate ad alto volume di ricerca
-
-META DESCRIPTION (max 155 caratteri), con keyword principale e soft CTA
-
+TITLE TAG (max 60 caratteri)
+META DESCRIPTION (max 155 caratteri)
 ARTICOLO HTML (800-1500 parole)
-
-L'articolo deve essere scritto in HTML pronto per un editor CMS.
 
 Regole HTML:
 
-- usa <h2> e <h3> per i sottotitoli
-- usa <p> per i paragrafi
-- usa <ul> <ol> per liste
-- usa <strong> per enfasi
-- usa <table> se utile per confronti
-- NON includere <html>, <body>, <head>
+usa <h2> e <h3>
+usa <p>
+usa <ul> <ol>
+usa <strong>
 
-IMPORTANTE:
-
-Le domande People Also Ask NON devono essere riportate come Q&A.
-Devono essere usate solo per capire i sotto-temi.
-
-TONE OF VOICE E STILE:
-Usa un tone of voice simpatico e scherzoso.
-All'inizio del paragrafo sotto ogni heading, rispondi in maniera diretta alla domanda implicita o esplicita contenuta in esso. In questo caso non utilizzare un tono simpatico e scherzoso.
-Scrivi in maniera ricca e discorsiva, non utilizzare paragrafi schematici.
-Se fai dei confronti, usa una tabella.
-Evidenzia con grassetti le entità chiave.
-Evita testo di riempimento.
+Non includere <html> o <body>.
 
 PAA INSIGHTS:
 {paa_block}
@@ -285,7 +221,7 @@ PAA INSIGHTS:
 COMPETITOR DATA:
 {merged}
 
-Restituisci il risultato nel formato:
+Formato:
 
 TITLE TAG:
 ...
@@ -303,272 +239,213 @@ ARTICLE HTML:
         temperature=0.7
     )
 
-    content = response.choices[0].message.content or ""
+    content = response.choices[0].message.content
 
     title = ""
     meta = ""
     article = content
 
     if "TITLE TAG:" in content:
-        parts = content.split("TITLE TAG:", 1)[1]
+
+        parts = content.split("TITLE TAG:")[1]
 
         if "META DESCRIPTION:" in parts:
-            title = parts.split("META DESCRIPTION:", 1)[0].strip()
+            title = parts.split("META DESCRIPTION:")[0].strip()
 
-        if "META DESCRIPTION:" in parts and "ARTICLE HTML:" in parts:
-            meta = parts.split("META DESCRIPTION:", 1)[1].split("ARTICLE HTML:", 1)[0].strip()
-            article = parts.split("ARTICLE HTML:", 1)[1].strip()
+        if "ARTICLE HTML:" in parts:
+            meta = parts.split("META DESCRIPTION:")[1].split("ARTICLE HTML:")[0].strip()
+            article = parts.split("ARTICLE HTML:")[1].strip()
 
     return title, meta, article
 
 
-def create_word_file(title_tag, meta_description, article):
+def create_word(title, meta, article):
+
     doc = Document()
 
     doc.add_heading("Title Tag", level=2)
-    doc.add_paragraph(title_tag)
+    doc.add_paragraph(title)
 
     doc.add_heading("Meta Description", level=2)
-    doc.add_paragraph(meta_description)
+    doc.add_paragraph(meta)
 
     doc.add_heading("HTML Article", level=2)
     doc.add_paragraph(article)
 
     buffer = BytesIO()
+
     doc.save(buffer)
+
     buffer.seek(0)
 
     return buffer
 
 
-def reset_generation_outputs():
-    st.session_state.competitors_enriched = []
-    st.session_state.title_tag = ""
-    st.session_state.meta_description = ""
-    st.session_state.article = ""
-
-
 # ======================
-# SIDEBAR API CONFIG
+# SIDEBAR
 # ======================
 
 st.sidebar.title("API Configuration")
 
-SERPER_KEY = st.sidebar.text_input(
-    "Serper.dev API Key",
-    type="password"
-)
+SERPER_KEY = st.sidebar.text_input("Serper API Key", type="password")
 
-OPENAI_KEY = st.sidebar.text_input(
-    "OpenAI API Key",
-    type="password"
-)
+OPENAI_KEY = st.sidebar.text_input("OpenAI API Key", type="password")
 
 # ======================
 # LOGO
 # ======================
 
-st.image(
-    "https://YOUR_LOGO_URL/logo.png",
-    width=220
-)
+st.image("https://YOUR_LOGO_URL/logo.png", width=220)
 
 # ======================
-# UI PRINCIPALE
+# UI
 # ======================
 
 st.title("SEO Article Generator")
 
-st.write(
-    "Genera articoli SEO analizzando automaticamente i competitor nella SERP e le People Also Ask."
-)
+keyword = st.text_input("Keyword")
 
-keyword = st.text_input("Main keyword", value=st.session_state.last_keyword)
+num_results = st.slider("Numero competitor", 1, 10, 5)
 
-num_results = st.number_input(
-    "Numero contenuti su cui fare scraping",
-    min_value=1,
-    max_value=20,
-    value=st.session_state.last_num_results
-)
+country = st.text_input("Country", "it")
 
-country = st.text_input(
-    "Country code (gl)",
-    value=st.session_state.last_country
-)
+language = st.text_input("Language", "it")
 
-language = st.text_input(
-    "Language code (hl)",
-    value=st.session_state.last_language
-)
+generate = st.button("Genera contenuto")
 
-col1, col2 = st.columns([1, 1])
 
-with col1:
-    generate = st.button("Genera contenuto", use_container_width=True)
+# ======================
+# STEP 1 — SERP
+# ======================
 
-with col2:
-    clear = st.button("Reset", use_container_width=True)
+if generate:
 
-if clear:
-    st.session_state.paa_questions = []
-    st.session_state.competitors_raw = []
-    st.session_state.competitors_enriched = []
-    st.session_state.title_tag = ""
-    st.session_state.meta_description = ""
-    st.session_state.article = ""
-    st.session_state.start_generation = False
-    st.session_state.serp_ready = False
+    with st.spinner("Recupero SERP..."):
+
+        st.session_state.competitors = get_competitors(
+            keyword,
+            num_results,
+            SERPER_KEY,
+            language,
+            country
+        )
+
+        st.session_state.paa = get_people_also_ask(
+            keyword,
+            SERPER_KEY,
+            language,
+            country
+        )
+
+        st.session_state.serp_ready = True
+        st.session_state.generate_step = True
+
     st.rerun()
+
 
 # ======================
 # SERP INSIGHTS
 # ======================
 
 if st.session_state.serp_ready:
+
     st.subheader("SERP Insights")
 
-    left, right = st.columns(2)
+    col1, col2 = st.columns(2)
 
-    with left:
-        st.markdown("#### People Also Ask")
-        if st.session_state.paa_questions:
-            for q in st.session_state.paa_questions:
-                st.write("-", q)
-        else:
-            st.caption("Nessuna PAA trovata.")
+    with col1:
 
-    with right:
-        st.markdown("#### URL scrapate")
-        if st.session_state.competitors_raw:
-            for comp in st.session_state.competitors_raw:
-                st.write("-", comp["link"])
-        else:
-            st.caption("Nessun URL disponibile.")
+        st.markdown("### People Also Ask")
+
+        for q in st.session_state.paa:
+            st.write("-", q)
+
+    with col2:
+
+        st.markdown("### URL scrapate")
+
+        for comp in st.session_state.competitors:
+            st.write("-", comp["link"])
 
     st.divider()
 
-# ======================
-# STEP 1: RECUPERO SERP E RERUN
-# ======================
-
-if generate:
-    if not SERPER_KEY or not OPENAI_KEY:
-        st.error("Inserisci entrambe le API key nella sidebar.")
-        st.stop()
-
-    if not keyword.strip():
-        st.error("Inserisci una keyword.")
-        st.stop()
-
-    reset_generation_outputs()
-
-    st.session_state.last_keyword = keyword
-    st.session_state.last_country = country
-    st.session_state.last_language = language
-    st.session_state.last_num_results = num_results
-
-    with st.spinner("Recupero competitor e People Also Ask dalla SERP..."):
-        competitors_raw = get_competitors(
-            keyword=keyword,
-            num_results=num_results,
-            serper_key=SERPER_KEY,
-            hl=language,
-            gl=country
-        )
-
-        paa_questions = get_people_also_ask(
-            keyword=keyword,
-            serper_key=SERPER_KEY,
-            hl=language,
-            gl=country
-        )
-
-    if not competitors_raw:
-        st.error("Nessun competitor trovato.")
-        st.stop()
-
-    st.session_state.competitors_raw = competitors_raw
-    st.session_state.paa_questions = paa_questions
-    st.session_state.serp_ready = True
-    st.session_state.start_generation = True
-
-    st.rerun()
 
 # ======================
-# STEP 2: SCRAPING + GENERAZIONE
+# STEP 2 — SCRAPING
 # ======================
 
-if st.session_state.start_generation:
-    st.session_state.start_generation = False
+if st.session_state.generate_step:
 
     competitors = []
-    total = len(st.session_state.competitors_raw)
 
     progress = st.progress(0)
-    status = st.empty()
 
-    for i, comp in enumerate(st.session_state.competitors_raw):
-        status.write(f"Scraping: {comp['link']}")
+    total = len(st.session_state.competitors)
+
+    for i, comp in enumerate(st.session_state.competitors):
 
         html, text = fetch_page(comp["link"])
-        html_title, h1, meta_desc = extract_metadata(html)
+
+        title, h1, meta = extract_metadata(html)
 
         competitors.append({
             **comp,
-            "html_title": html_title,
+            "html_title": title,
             "h1": h1,
-            "meta_desc": meta_desc,
+            "meta_desc": meta,
             "text": text
         })
 
         progress.progress((i + 1) / total)
 
-    status.empty()
     st.session_state.competitors_enriched = competitors
 
-    with st.spinner("Generazione articolo con AI..."):
-        title_tag, meta_description, article = generate_article(
-            keyword=st.session_state.last_keyword,
-            competitors=st.session_state.competitors_enriched,
-            paa=st.session_state.paa_questions,
-            openai_key=OPENAI_KEY,
-            language=st.session_state.last_language
+    with st.spinner("Generazione articolo AI..."):
+
+        title, meta, article = generate_article(
+            keyword,
+            competitors,
+            st.session_state.paa,
+            OPENAI_KEY,
+            language
         )
 
-    st.session_state.title_tag = title_tag
-    st.session_state.meta_description = meta_description
-    st.session_state.article = article
+        st.session_state.title_tag = title
+        st.session_state.meta_desc = meta
+        st.session_state.article = article
+
+    st.session_state.generate_step = False
 
     st.rerun()
+
 
 # ======================
 # OUTPUT
 # ======================
 
 if st.session_state.article:
+
     st.subheader("SEO Metadata")
 
-    st.write("**Title Tag**")
+    st.write("Title Tag")
     st.write(st.session_state.title_tag)
 
-    st.write("**Meta Description**")
-    st.write(st.session_state.meta_description)
+    st.write("Meta Description")
+    st.write(st.session_state.meta_desc)
 
-    st.subheader("Articolo HTML generato")
+    st.subheader("Articolo HTML")
+
     st.code(st.session_state.article, language="html")
 
-    word_file = create_word_file(
+    file = create_word(
         st.session_state.title_tag,
-        st.session_state.meta_description,
+        st.session_state.meta_desc,
         st.session_state.article
     )
 
-    safe_keyword = st.session_state.last_keyword.replace(" ", "_").strip() or "contenuto"
-
     st.download_button(
-        label="Scarica documento Word",
-        data=word_file,
-        file_name=f"contenuto_{safe_keyword}.docx",
+        "Scarica Word",
+        data=file,
+        file_name="articolo_seo.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )

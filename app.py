@@ -11,8 +11,8 @@ from io import BytesIO
 
 st.sidebar.title("API Configuration")
 
-SERPAPI_KEY = st.sidebar.text_input(
-    "SerpAPI Key",
+SERPER_KEY = st.sidebar.text_input(
+    "Serper.dev API Key",
     type="password"
 )
 
@@ -53,47 +53,30 @@ language = st.text_input(
 generate = st.button("Genera contenuto")
 
 # ======================
-# FUNZIONE GEO GOOGLE
-# ======================
-
-def get_google_geo(gl):
-
-    mapping = {
-        "it": ("Italy", "google.it"),
-        "de": ("Germany", "google.de"),
-        "gb": ("United Kingdom", "google.co.uk"),
-        "es": ("Spain", "google.es"),
-        "fr": ("France", "google.fr")
-    }
-
-    return mapping.get(gl.lower(), ("Italy", "google.it"))
-
-# ======================
 # FUNZIONI
 # ======================
 
-def get_competitors(keyword: str, num_results: int, serp_key: str, hl: str, gl: str):
+def get_competitors(keyword: str, num_results: int, serper_key: str, hl: str, gl: str):
 
-    location, google_domain = get_google_geo(gl)
+    url = "https://google.serper.dev/search"
 
-    url = "https://serpapi.com/search.json"
-
-    params = {
-        "engine": "google",
+    payload = {
         "q": keyword,
-        "hl": hl,
         "gl": gl,
-        "location": location,
-        "google_domain": google_domain,
-        "num": num_results,
-        "api_key": serp_key
+        "hl": hl,
+        "num": num_results
     }
 
-    response = requests.get(url, params=params)
+    headers = {
+        "X-API-KEY": serper_key,
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
 
     data = response.json()
 
-    organic = data.get("organic_results", [])
+    organic = data.get("organic", [])
 
     competitors = []
 
@@ -107,27 +90,26 @@ def get_competitors(keyword: str, num_results: int, serp_key: str, hl: str, gl: 
     return competitors
 
 
-def get_people_also_ask(keyword: str, serp_key: str, hl: str, gl: str):
+def get_people_also_ask(keyword: str, serper_key: str, hl: str, gl: str):
 
-    location, google_domain = get_google_geo(gl)
+    url = "https://google.serper.dev/search"
 
-    url = "https://serpapi.com/search.json"
-
-    params = {
-        "engine": "google",
+    payload = {
         "q": keyword,
-        "hl": hl,
         "gl": gl,
-        "location": location,
-        "google_domain": google_domain,
-        "api_key": serp_key
+        "hl": hl
     }
 
-    response = requests.get(url, params=params)
+    headers = {
+        "X-API-KEY": serper_key,
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
 
     data = response.json()
 
-    questions = data.get("related_questions", [])
+    questions = data.get("peopleAlsoAsk", [])
 
     paa = []
 
@@ -213,13 +195,15 @@ CONTENUTO:
         paa_block = "\n".join([f"- {q}" for q in paa])
 
     prompt = f"""
-Sei un SEO Copywriter professionista nel 2026.
+Sei un content writer SEO esperto.
 
 Scrivi un contenuto SEO completo per la keyword:
 
 {keyword}
 
 Language code della ricerca: {language}
+
+Il risultato deve contenere:
 
 TITLE TAG (max 60 caratteri)
 
@@ -315,7 +299,7 @@ def create_word_file(title_tag, meta_description, article):
 
 if generate:
 
-    if not SERPAPI_KEY or not OPENAI_KEY:
+    if not SERPER_KEY or not OPENAI_KEY:
 
         st.error("Inserisci entrambe le API key nella sidebar")
         st.stop()
@@ -330,7 +314,7 @@ if generate:
         competitors_raw = get_competitors(
             keyword,
             num_results,
-            SERPAPI_KEY,
+            SERPER_KEY,
             language,
             country
         )
@@ -344,7 +328,7 @@ if generate:
 
         paa_questions = get_people_also_ask(
             keyword,
-            SERPAPI_KEY,
+            SERPER_KEY,
             language,
             country
         )

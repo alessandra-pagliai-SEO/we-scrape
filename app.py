@@ -4,24 +4,6 @@ from bs4 import BeautifulSoup
 from openai import OpenAI
 from docx import Document
 from io import BytesIO
-from urllib.parse import urlparse
-
-# ======================
-# DOMINI DA ESCLUDERE
-# ======================
-
-EXCLUDED_DOMAINS = [
-    "youtube.com",
-    "youtu.be",
-    "facebook.com",
-    "instagram.com",
-    "tiktok.com",
-    "twitter.com",
-    "x.com",
-    "linkedin.com",
-    "pinterest.com",
-    "reddit.com"
-]
 
 # ======================
 # SIDEBAR API CONFIG
@@ -43,10 +25,10 @@ OPENAI_KEY = st.sidebar.text_input(
 # UI PRINCIPALE
 # ======================
 
-st.title("WeScrape")
+st.title("SEO Article Generator")
 
 st.write(
-    "Genera articoli SEO nel tone of voice di WeRoad analizzando automaticamente i competitor nella SERP e le People Also Ask."
+    "Genera articoli SEO analizzando automaticamente i competitor nella SERP e le People Also Ask."
 )
 
 keyword = st.text_input("Main keyword")
@@ -54,7 +36,7 @@ keyword = st.text_input("Main keyword")
 num_results = st.number_input(
     "Numero contenuti su cui fare scraping",
     min_value=1,
-    max_value=20,
+    max_value=10,
     value=3
 )
 
@@ -67,9 +49,6 @@ language = st.text_input(
     "Language code (hl)",
     value="it"
 )
-
-sitemap_site = st.text_input("Sitemap Sito Web")
-sitemap_blog = st.text_input("Sitemap Blog")
 
 generate = st.button("Genera contenuto")
 
@@ -86,7 +65,7 @@ def get_competitors(keyword: str, num_results: int, serp_key: str, hl: str, gl: 
         "q": keyword,
         "hl": hl,
         "gl": gl,
-        "num": num_results * 3,
+        "num": num_results,
         "api_key": serp_key
     }
 
@@ -98,25 +77,12 @@ def get_competitors(keyword: str, num_results: int, serp_key: str, hl: str, gl: 
 
     competitors = []
 
-    for item in organic:
-
-        link = item.get("link")
-
-        if not link:
-            continue
-
-        domain = urlparse(link).netloc.lower()
-
-        if any(excluded in domain for excluded in EXCLUDED_DOMAINS):
-            continue
+    for item in organic[:num_results]:
 
         competitors.append({
             "title": item.get("title"),
-            "link": link
+            "link": item.get("link")
         })
-
-        if len(competitors) >= num_results:
-            break
 
     return competitors
 
@@ -194,7 +160,7 @@ def extract_metadata(html: str):
     return title, h1, meta_desc
 
 
-def generate_article(keyword: str, competitors: list, paa: list, openai_key: str, language: str, sitemap_site: str, sitemap_blog: str):
+def generate_article(keyword: str, competitors: list, paa: list, openai_key: str, language: str):
 
     client = OpenAI(api_key=openai_key)
 
@@ -223,37 +189,45 @@ CONTENUTO:
         paa_block = "\n".join([f"- {q}" for q in paa])
 
     prompt = f"""
-Sei un esperto SEO Copywriter.
+Sei un content writer SEO esperto.
 
-Anno di riferimento: 2026.
+Scrivi un contenuto SEO completo per la keyword:
 
-Keyword principale:
 {keyword}
 
-Lingua dell'articolo:
-{language}
+Language code della ricerca: {language}
 
-Sitemap Sito Web:
-{sitemap_site}
+Il risultato deve contenere:
 
-Sitemap Blog:
-{sitemap_blog}
+TITLE TAG (max 60 caratteri)
 
-========================
-OBIETTIVO
-========================
+META DESCRIPTION (max 155 caratteri)
 
-Scrivere un articolo SEO completo basato sulla keyword principale analizzando:
+ARTICOLO HTML (800-1200 parole)
 
-- contenuti dei competitor
-- People Also Ask
-- intenzione di ricerca
+L'articolo deve essere scritto in HTML pronto per un editor CMS.
 
-Il contenuto deve essere informativo e utile.
+Regole HTML:
 
-========================
-OUTPUT RICHIESTO
-========================
+- usa <h2> e <h3> per i sottotitoli
+- usa <p> per i paragrafi
+- usa <ul> <ol> per liste
+- usa <strong> per enfasi
+- usa <table> se utile per confronti
+- NON includere <html>, <body>, <head>
+
+IMPORTANTE:
+
+Le domande People Also Ask NON devono essere riportate come Q&A.
+Devono essere usate solo per capire i sotto-temi.
+
+PAA INSIGHTS:
+{paa_block}
+
+COMPETITOR DATA:
+{merged}
+
+Restituisci il risultato nel formato:
 
 TITLE TAG:
 ...
@@ -263,74 +237,6 @@ META DESCRIPTION:
 
 ARTICLE HTML:
 ...
-
-========================
-STILE DI SCRITTURA
-========================
-
-Il testo deve sembrare scritto da un travel editor umano.
-
-Evita una struttura troppo schematica o ripetitiva.
-
-Alterna:
-- paragrafi narrativi
-- liste
-- micro approfondimenti
-
-Ogni sezione deve iniziare con una breve risposta introduttiva (40-60 parole) che introduca il tema.
-
-Successivamente sviluppa il contenuto in modo naturale e discorsivo.
-
-========================
-LINK INTERNI BLOG
-========================
-
-All'interno del contenuto suggerisci massimo 5 link verso contenuti affini, da inserire in anchor-text fortemente in target dal punto di vista semantico.
-
-Regole:
-
-- verifica se esistono articoli pertinenti nella Sitemap Blog
-- suggerisci link solo se realmente pertinenti
-- non inventare URL
-- usa anchor text naturali
-- usa HTML <a>
-
-========================
-LINK DESTINAZIONI
-========================
-
-Verso la fine dell'articolo inserisci 1 o 2 link di viaggi o destinazioni.
-
-Regole:
-
-- usa URL presenti nella Sitemap Sito Web
-- inserisci i link solo se coerenti con la keyword
-- non inventare URL
-- usa anchor text naturali
-- usa HTML <a>
-
-========================
-PEOPLE ALSO ASK
-========================
-
-Usa le domande PAA solo per individuare sotto-topic.
-
-PAA INSIGHTS:
-{paa_block}
-
-========================
-COMPETITOR DATA
-========================
-
-Analizza questi contenuti per comprendere:
-
-- struttura
-- profondità
-- copertura dei topic
-
-Non copiarli.
-
-{merged}
 """
 
     response = client.chat.completions.create(
@@ -430,6 +336,8 @@ if generate:
 
     st.write("### Analisi contenuti competitor")
 
+    st.write("#### Pagine utilizzate per l'analisi")
+
     for comp in competitors_raw:
         st.write("-", comp["link"])
 
@@ -467,9 +375,7 @@ if generate:
             competitors,
             paa_questions,
             OPENAI_KEY,
-            language,
-            sitemap_site,
-            sitemap_blog
+            language
         )
 
     st.subheader("SEO Metadata")

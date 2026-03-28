@@ -7,22 +7,6 @@ from io import BytesIO
 
 
 # ======================
-# LOGO (HARDCODED)
-# ======================
-
-LOGO_URL = "https://YOUR-LOGO-URL.png"
-
-st.markdown(
-    f"""
-    <div style="display:flex; justify-content:center; margin-bottom:20px;">
-        <img src="{LOGO_URL}" width="260">
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# ======================
 # SESSION STATE
 # ======================
 
@@ -311,3 +295,161 @@ def create_word_file(title_tag: str, meta_description: str, article: str):
     buffer.seek(0)
 
     return buffer
+
+
+# ======================
+# SIDEBAR API
+# ======================
+
+st.sidebar.title("API Configuration")
+
+st.sidebar.header("SERP scraping")
+SERPER_KEY = st.sidebar.text_input(
+    "Serper.dev API Key",
+    type="password"
+)
+
+st.sidebar.header("People Also Ask")
+SERPAPI_KEY = st.sidebar.text_input(
+    "SerpAPI Key",
+    type="password"
+)
+
+st.sidebar.header("AI generation")
+OPENAI_KEY = st.sidebar.text_input(
+    "OpenAI API Key",
+    type="password"
+)
+
+
+# ======================
+# UI
+# ======================
+
+st.title("SEO Article Generator")
+
+keyword = st.text_input("Keyword")
+num_results = st.slider("Numero competitor organici da scrapare", 1, 20, 5)
+country = st.text_input("Country code", "it")
+language = st.text_input("Language code", "it")
+
+generate = st.button("Genera contenuto")
+
+
+# ======================
+# GENERAZIONE
+# ======================
+
+if generate:
+    if not SERPER_KEY or not SERPAPI_KEY or not OPENAI_KEY:
+        st.error("Inserisci tutte le API key nella sidebar.")
+        st.stop()
+
+    if not keyword.strip():
+        st.error("Inserisci una keyword.")
+        st.stop()
+
+    st.session_state.article = ""
+    st.session_state.title_tag = ""
+    st.session_state.meta_description = ""
+
+    st.subheader("SERP Insights")
+
+    paa_placeholder = st.empty()
+    url_placeholder = st.empty()
+    progress = st.progress(0)
+
+    with st.spinner("Recupero risultati organici e People Also Ask..."):
+        competitors = get_competitors(
+            keyword=keyword,
+            num_results=num_results,
+            serper_key=SERPER_KEY,
+            hl=language,
+            gl=country
+        )
+
+        paa = get_people_also_ask(
+            keyword=keyword,
+            serpapi_key=SERPAPI_KEY,
+            hl=language,
+            gl=country
+        )
+
+    if not competitors:
+        st.error("Nessun risultato organico trovato.")
+        st.stop()
+
+    with paa_placeholder.container():
+        st.markdown("### People Also Ask")
+        if paa:
+            for q in paa:
+                st.write("-", q)
+        else:
+            st.caption("Nessuna PAA trovata.")
+
+    enriched = []
+    scraped = []
+
+    for i, comp in enumerate(competitors, start=1):
+        scraped.append(comp["link"])
+
+        with url_placeholder.container():
+            st.markdown("### URL scrapate")
+            for u in scraped:
+                st.write("-", u)
+
+        html, text = fetch_page(comp["link"])
+        html_title, h1, meta_desc = extract_metadata(html)
+
+        enriched.append({
+            **comp,
+            "html_title": html_title,
+            "h1": h1,
+            "meta_desc": meta_desc,
+            "text": text
+        })
+
+        progress.progress(i / len(competitors))
+
+    with st.spinner(f"Generazione articolo su {len(enriched)} contenuti organici..."):
+        title_tag, meta_description, article = generate_article(
+            keyword=keyword,
+            competitors=enriched,
+            paa=paa,
+            openai_key=OPENAI_KEY,
+            language=language
+        )
+
+    st.session_state.title_tag = title_tag
+    st.session_state.meta_description = meta_description
+    st.session_state.article = article
+
+
+# ======================
+# OUTPUT
+# ======================
+
+if st.session_state.article:
+    st.subheader("SEO Metadata")
+
+    st.write("**Title Tag**")
+    st.write(st.session_state.title_tag)
+
+    st.write("**Meta Description**")
+    st.write(st.session_state.meta_description)
+
+    st.subheader("Articolo HTML")
+    st.code(st.session_state.article, language="html")
+
+    word_file = create_word_file(
+        st.session_state.title_tag,
+        st.session_state.meta_description,
+        st.session_state.article
+    )
+
+    st.download_button(
+        label="Scarica Word",
+        data=word_file,
+        file_name="articolo_seo.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )

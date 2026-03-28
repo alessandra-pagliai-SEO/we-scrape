@@ -37,7 +37,7 @@ num_results = st.number_input(
     "Numero contenuti su cui fare scraping",
     min_value=1,
     max_value=20,
-    value=10
+    value=5
 )
 
 country = st.text_input(
@@ -60,34 +60,60 @@ def get_competitors(keyword: str, num_results: int, serper_key: str, hl: str, gl
 
     url = "https://google.serper.dev/search"
 
-    payload = {
-        "q": keyword,
-        "gl": gl,
-        "hl": hl,
-        "num": num_results
-    }
-
     headers = {
         "X-API-KEY": serper_key,
         "Content-Type": "application/json"
     }
 
-    response = requests.post(url, json=payload, headers=headers)
-
-    data = response.json()
-
-    organic = data.get("organic", [])
-
     competitors = []
+    start = 0
 
-    for item in organic[:num_results]:
+    blocked_domains = [
+        "youtube.com",
+        "youtu.be",
+        "tiktok.com",
+        "pinterest.com",
+        "facebook.com",
+        "instagram.com"
+    ]
 
-        competitors.append({
-            "title": item.get("title"),
-            "link": item.get("link")
-        })
+    while len(competitors) < num_results and start < 40:
 
-    return competitors
+        payload = {
+            "q": keyword,
+            "gl": gl,
+            "hl": hl,
+            "num": 10,
+            "start": start
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+
+        data = response.json()
+
+        organic = data.get("organic", [])
+
+        for item in organic:
+
+            link = item.get("link")
+
+            if not link:
+                continue
+
+            if any(domain in link for domain in blocked_domains):
+                continue
+
+            competitors.append({
+                "title": item.get("title"),
+                "link": link
+            })
+
+            if len(competitors) >= num_results:
+                break
+
+        start += 10
+
+    return competitors[:num_results]
 
 
 def get_people_also_ask(keyword: str, serper_key: str, hl: str, gl: str):

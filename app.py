@@ -5,15 +5,10 @@ from openai import OpenAI
 from docx import Document
 from io import BytesIO
 
+
 # ======================
 # SESSION STATE
 # ======================
-
-if "paa_questions" not in st.session_state:
-    st.session_state.paa_questions = []
-
-if "scraped_urls" not in st.session_state:
-    st.session_state.scraped_urls = []
 
 if "article" not in st.session_state:
     st.session_state.article = ""
@@ -24,11 +19,12 @@ if "title_tag" not in st.session_state:
 if "meta_description" not in st.session_state:
     st.session_state.meta_description = ""
 
+
 # ======================
-# FUNZIONI
+# SERPER ORGANIC RESULTS
 # ======================
 
-def get_competitors(keyword, num_results, serper_key, hl, gl):
+def get_competitors(keyword: str, num_results: int, serper_key: str, hl: str, gl: str):
 
     url = "https://google.serper.dev/search"
 
@@ -38,9 +34,20 @@ def get_competitors(keyword, num_results, serper_key, hl, gl):
     }
 
     competitors = []
+    seen_urls = set()
+
     start = 0
 
-    while len(competitors) < num_results and start < 40:
+    blocked_domains = [
+        "youtube.com",
+        "youtu.be",
+        "tiktok.com",
+        "instagram.com",
+        "facebook.com",
+        "pinterest.com"
+    ]
+
+    while len(competitors) < num_results and start <= 90:
 
         payload = {
             "q": keyword,
@@ -50,10 +57,15 @@ def get_competitors(keyword, num_results, serper_key, hl, gl):
             "start": start
         }
 
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        response.raise_for_status()
+
         data = response.json()
 
         organic = data.get("organic", [])
+
+        if not organic:
+            break
 
         for item in organic:
 
@@ -62,8 +74,16 @@ def get_competitors(keyword, num_results, serper_key, hl, gl):
             if not link:
                 continue
 
+            if link in seen_urls:
+                continue
+
+            if any(domain in link for domain in blocked_domains):
+                continue
+
+            seen_urls.add(link)
+
             competitors.append({
-                "title": item.get("title"),
+                "title": item.get("title", ""),
                 "link": link
             })
 
@@ -74,6 +94,10 @@ def get_competitors(keyword, num_results, serper_key, hl, gl):
 
     return competitors[:num_results]
 
+
+# ======================
+# PEOPLE ALSO ASK
+# ======================
 
 def get_people_also_ask(keyword, serpapi_key, hl, gl):
 
@@ -88,6 +112,7 @@ def get_people_also_ask(keyword, serpapi_key, hl, gl):
     }
 
     response = requests.get(url, params=params)
+
     data = response.json()
 
     questions = []
@@ -99,6 +124,10 @@ def get_people_also_ask(keyword, serpapi_key, hl, gl):
 
     return questions[:10]
 
+
+# ======================
+# SCRAPING PAGINA
+# ======================
 
 def fetch_page(url):
 
@@ -122,6 +151,7 @@ def fetch_page(url):
         return html, text[:18000]
 
     except Exception:
+
         return "", ""
 
 
@@ -143,6 +173,10 @@ def extract_metadata(html):
     return title, h1, meta_desc
 
 
+# ======================
+# GENERAZIONE ARTICOLO
+# ======================
+
 def generate_article(keyword, competitors, paa, openai_key):
 
     client = OpenAI(api_key=openai_key)
@@ -163,6 +197,7 @@ CONTENUTO:
 {comp['text']}
 
 -------------------------
+
 """
 
     paa_block = "\n".join([f"- {q}" for q in paa])
@@ -187,11 +222,16 @@ ARTICLE HTML:
 
     response = client.chat.completions.create(
         model="gpt-5.4",
-        messages=[{"role": "user", "content": prompt}]
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7
     )
 
     return response.choices[0].message.content
 
+
+# ======================
+# WORD EXPORT
+# ======================
 
 def create_word_file(title_tag, meta_description, article):
 
@@ -222,25 +262,26 @@ def create_word_file(title_tag, meta_description, article):
 st.sidebar.title("API Configuration")
 
 st.sidebar.header("SERP scraping")
+
 SERPER_KEY = st.sidebar.text_input(
     "Serper.dev API Key",
-    type="password",
-    help="Usata per recuperare i risultati organici della SERP"
+    type="password"
 )
 
 st.sidebar.header("People Also Ask")
+
 SERPAPI_KEY = st.sidebar.text_input(
     "SerpAPI Key",
-    type="password",
-    help="Usata per recuperare le PAA"
+    type="password"
 )
 
 st.sidebar.header("AI generation")
+
 OPENAI_KEY = st.sidebar.text_input(
     "OpenAI API Key",
-    type="password",
-    help="Usata per generare l'articolo SEO"
+    type="password"
 )
+
 
 # ======================
 # UI
@@ -300,7 +341,6 @@ if generate:
                 st.write("-", q)
 
     scraped = []
-
     enriched = []
 
     for i, comp in enumerate(competitors):

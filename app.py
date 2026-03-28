@@ -220,7 +220,7 @@ CONTENUTO:
     paa_block = "\n".join([f"- {q}" for q in paa]) if paa else "Nessuna PAA disponibile."
 
     prompt = f"""
-Sei un content writer SEO esperto. Siamo nel 2026.
+Sei un content writer SEO esperto.
 
 Scrivi un contenuto SEO completo per la keyword:
 
@@ -231,7 +231,7 @@ Language code della ricerca: {language}
 Il risultato deve contenere:
 
 TITLE TAG (max 60 caratteri)
-META DESCRIPTION (max 155 caratteri)
+META DESCRIPTION (max 155 caratteri, naturale e con soft CTA)
 ARTICOLO HTML (800-1500 parole)
 
 L'articolo deve essere scritto in HTML pronto per CMS.
@@ -260,10 +260,6 @@ Le PAA NON devono comparire come Q&A.
 - Evidenzia con **strong** le entità chiave (destinazioni, punti di interesse, meteo, temperature, ecc.).
 - Evita testo di riempimento: ogni paragrafo deve aggiungere valore informativo.
 - Evita paragrafi schematici: il testo deve essere discorsivo e ricco. No paragrafi composti solo da punti elenco.
-- Lunghezza complessiva circa 1500 parole.
-
-
-
 
 PAA INSIGHTS:
 {paa_block}

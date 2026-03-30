@@ -260,6 +260,7 @@ Le PAA NON devono comparire come Q&A.
 - Evidenzia con **strong** le entità chiave (destinazioni, punti di interesse, meteo, temperature, ecc.).
 - Evita testo di riempimento: ogni paragrafo deve aggiungere valore informativo.
 - Evita paragrafi schematici: il testo deve essere discorsivo e ricco. No paragrafi composti solo da punti elenco.
+- Al termine dell'articolo suggerisci almeno 4 FAQ relative al contentenuto in formato Q&A
 
 PAA INSIGHTS:
 {paa_block}

@@ -248,6 +248,7 @@ Le PAA NON devono comparire come Q&A.
 
 # Requisiti editoriali
 
+- Utilizza un tone of voice simpatico e scherzoso nei passaggi narrativi.
 - Inizia il testo sotto ogni heading con una risposta diretta di circa 50 parole.
 - In queste porzioni iniziali NON usare il tone of voice simpatico e scherzoso.
 - Usa gli heading (H1, H2, H3) per formulare quesiti espliciti basati su keyword con volume di ricerca.

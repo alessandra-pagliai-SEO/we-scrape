@@ -198,7 +198,7 @@ def parse_generated_content(content: str):
     return title, meta, article
 
 
-def generate_article(keyword: str, competitors: list, paa: list, openai_key: str, language: str):
+def generate_article(keyword: str, article_title: str, competitors: list, paa: list, openai_key: str, language: str):
     client = OpenAI(api_key=openai_key)
 
     merged = ""
@@ -226,6 +226,10 @@ Scrivi un contenuto SEO completo per la keyword:
 
 {keyword}
 
+L'H1 dell'articolo è già definito e NON deve essere modificato:
+
+{article_title}
+
 Language code della ricerca: {language}
 
 Il risultato deve contenere:
@@ -233,6 +237,12 @@ Il risultato deve contenere:
 TITLE TAG (max 60 caratteri)
 META DESCRIPTION (max 155 caratteri, naturale e con soft CTA)
 ARTICOLO HTML (800-1500 parole)
+
+L'articolo deve iniziare con questo H1:
+
+<h1>{article_title}</h1>
+
+NON creare un nuovo H1.
 
 L'articolo deve essere scritto in HTML pronto per CMS.
 
@@ -251,17 +261,18 @@ Le PAA NON devono comparire come Q&A.
 - Utilizza un tone of voice simpatico e scherzoso nei passaggi narrativi.
 - Inizia il testo sotto ogni heading con una risposta diretta di circa 50 parole.
 - In queste porzioni iniziali NON usare il tone of voice simpatico e scherzoso.
-- Usa gli heading (H1, H2, H3) per formulare quesiti espliciti basati su keyword con volume di ricerca.
+- Usa gli heading (H2, H3) per formulare quesiti espliciti basati su keyword con volume di ricerca.
 - Anche negli heading non usare il tone of voice simpatico e scherzoso.
 - Non mettere prime lettere maiuscole ovunque: usa la capitalizzazione corretta secondo la lingua.
 - Inserisci sempre la maiuscola a inizio frase.
 - Utilizza elenchi puntati o numerati quando utile.
 - Quando fai confronti tra luoghi, monumenti o punti di interesse usa una tabella.
-- Le tabelle devono essere ottimizzate per viewport mobile (leggibili da smartphone).
-- Evidenzia con **strong** le entità chiave (destinazioni, punti di interesse, meteo, temperature, ecc.).
-- Evita testo di riempimento: ogni paragrafo deve aggiungere valore informativo.
-- Evita paragrafi schematici: il testo deve essere discorsivo e ricco. No paragrafi composti solo da punti elenco.
-- Al termine dell'articolo suggerisci almeno 4 FAQ relative al contentenuto in formato Q&A
+- Le tabelle devono essere ottimizzate per viewport mobile.
+- Evidenzia con <strong> le entità chiave.
+- Evita testo di riempimento.
+- Evita paragrafi composti solo da elenchi.
+
+Al termine dell'articolo suggerisci almeno 4 FAQ in formato Q&A.
 
 PAA INSIGHTS:
 {paa_block}
@@ -321,22 +332,13 @@ def create_word_file(title_tag: str, meta_description: str, article: str):
 st.sidebar.title("API Configuration")
 
 st.sidebar.header("SERP scraping")
-SERPER_KEY = st.sidebar.text_input(
-    "Serper.dev API Key",
-    type="password"
-)
+SERPER_KEY = st.sidebar.text_input("Serper.dev API Key", type="password")
 
 st.sidebar.header("People Also Ask")
-SERPAPI_KEY = st.sidebar.text_input(
-    "SerpAPI Key",
-    type="password"
-)
+SERPAPI_KEY = st.sidebar.text_input("SerpAPI Key", type="password")
 
 st.sidebar.header("AI generation")
-OPENAI_KEY = st.sidebar.text_input(
-    "OpenAI API Key",
-    type="password"
-)
+OPENAI_KEY = st.sidebar.text_input("OpenAI API Key", type="password")
 
 
 # ======================
@@ -360,6 +362,7 @@ st.markdown(
 )
 
 keyword = st.text_input("Keyword")
+article_title = st.text_input("Titolo articolo (H1)")
 num_results = st.slider("Numero competitor organici da analizzare", 1, 20, 5)
 country = st.text_input("Country code", "it")
 language = st.text_input("Language code", "it")
@@ -378,6 +381,10 @@ if generate:
 
     if not keyword.strip():
         st.error("Inserisci una keyword.")
+        st.stop()
+
+    if not article_title.strip():
+        st.error("Inserisci il titolo dell'articolo (H1).")
         st.stop()
 
     st.session_state.article = ""
@@ -445,6 +452,7 @@ if generate:
     with st.spinner(f"Generazione articolo su {len(enriched)} contenuti organici..."):
         title_tag, meta_description, article = generate_article(
             keyword=keyword,
+            article_title=article_title,
             competitors=enriched,
             paa=paa,
             openai_key=OPENAI_KEY,

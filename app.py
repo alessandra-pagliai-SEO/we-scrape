@@ -296,7 +296,7 @@ ARTICLE HTML:
 """
 
     response = client.chat.completions.create(
-        model="gpt-5.4",
+        model="gemini-2.5-flash",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.7
     )

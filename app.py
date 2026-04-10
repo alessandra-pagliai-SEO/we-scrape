@@ -296,13 +296,26 @@ ARTICLE HTML:
 """
 
     response = client.chat.completions.create(
-        model="gemini-2.5-flash",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
+    model="gemini-2.5-flash",
+    messages=[{"role": "user", "content": prompt}],
+    temperature=0.7
+)
 
-    content = response.choices[0].message.content or ""
-    return parse_generated_content(content)
+# gestione robusta del formato risposta
+content = ""
+
+if hasattr(response, "choices") and response.choices:
+    msg = response.choices[0].message
+
+    if isinstance(msg.content, str):
+        content = msg.content
+
+    elif isinstance(msg.content, list):
+        content = "".join(
+            part.get("text", "") for part in msg.content if isinstance(part, dict)
+        )
+
+return parse_generated_content(content)
 
 
 # ======================

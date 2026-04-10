@@ -199,7 +199,10 @@ def parse_generated_content(content: str):
 
 
 def generate_article(keyword: str, article_title: str, competitors: list, paa: list, openai_key: str, language: str):
-    client = OpenAI(api_key=openai_key)
+    client = OpenAI(
+        api_key=openai_key,
+        base_url="https://litellm.weroad.io/v1"
+    )
 
     merged = ""
 

@@ -199,11 +199,7 @@ def parse_generated_content(content: str):
 
 
 def generate_article(keyword: str, article_title: str, competitors: list, paa: list, openai_key: str, language: str):
-
-    client = OpenAI(
-        api_key=openai_key,
-        base_url="https://litellm.weroad.io/v1"
-    )
+    client = OpenAI(api_key=openai_key)
 
     merged = ""
 
@@ -261,6 +257,7 @@ Regole HTML:
 Le PAA NON devono comparire come Q&A.
 
 # Requisiti editoriali
+
 - Utilizza un tone of voice simpatico e scherzoso nei passaggi narrativi.
 - Inizia il testo sotto ogni heading con una risposta diretta di circa 50 parole.
 - In queste porzioni iniziali NON usare il tone of voice simpatico e scherzoso.
@@ -269,8 +266,13 @@ Le PAA NON devono comparire come Q&A.
 - Non mettere prime lettere maiuscole ovunque: usa la capitalizzazione corretta secondo la lingua.
 - Inserisci sempre la maiuscola a inizio frase.
 - Utilizza elenchi puntati o numerati quando utile.
-- Quando fai confronti tra luoghi usa una tabella.
+- Quando fai confronti tra luoghi, monumenti o punti di interesse usa una tabella.
+- Le tabelle devono essere ottimizzate per viewport mobile.
 - Evidenzia con <strong> le entità chiave.
+- Evita testo di riempimento.
+- Evita paragrafi composti solo da elenchi.
+
+Al termine dell'articolo suggerisci almeno 4 FAQ in formato Q&A.
 
 PAA INSIGHTS:
 {paa_block}
@@ -295,19 +297,8 @@ ARTICLE HTML:
         messages=[{"role": "user", "content": prompt}],
         temperature=0.7
     )
-    st.write(response)
-    content = ""
 
-    # gestione risposta SDK
-    if hasattr(response, "choices") and response.choices:
-        content = response.choices[0].message.content or ""
-
-    # gestione risposta JSON LiteLLM
-    elif isinstance(response, dict):
-        choices = response.get("choices")
-        if choices:
-            content = choices[0]["message"]["content"]
-
+    content = response.choices[0].message.content or ""
     return parse_generated_content(content)
 
 

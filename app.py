@@ -990,6 +990,7 @@ Le PAA NON devono comparire come Q&A.
 - Evita testo di riempimento.
 - Evita paragrafi composti solo da elenchi.
 - Non essere troppo didascalico, l'articolo deve essere caldo e coinvolgente.
+- Non chiamare mai il paragrafo conclusivo "Conclusioni".
 - Prima di chiudere l'articolo, inserisci una frase che inviti a scoprire i viaggi di gruppo WeRoad per la destinazione di riferimento.
 
 Indicazioni editoriali aggiuntive facoltative da integrare alle regole sopra, senza sostituirle:

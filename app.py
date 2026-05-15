@@ -271,6 +271,7 @@ Le PAA NON devono comparire come Q&A.
 - Evidenzia con <strong> le entità chiave.
 - Evita testo di riempimento.
 - Evita paragrafi composti solo da elenchi.
+- Non chiamare mai il paragrafo conclusivo "Conclusioni"
 
 Al termine dell'articolo suggerisci almeno 4 FAQ in formato Q&A.
 
